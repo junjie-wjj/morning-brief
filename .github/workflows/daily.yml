@@ -1,0 +1,37 @@
+name: daily-brief
+
+on:
+  schedule:
+    - cron: '0 23 * * *'   # UTC 23:00 = 北京时间早上 07:00（GitHub 定时可能有十几分钟延迟）
+  workflow_dispatch:        # 允许在 Actions 页面手动触发
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node brief.mjs
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}   # 仓库 Settings → Secrets and variables → Actions 里添加
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

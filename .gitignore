@@ -1,0 +1,6 @@
+# 密钥等敏感配置，绝不能提交到 GitHub（否则 key 公开泄露）
+.env
+
+# macOS / 编辑器杂物
+.DS_Store
+Thumbs.db
