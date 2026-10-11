@@ -4,8 +4,8 @@ import ItemCard from "../components/ItemCard";
 // 每次请求实时读数据库再返回页面
 export const instant = false;
 
-export default function Later() {
-  const items = queryItems("SELECT * FROM items WHERE status = 'later' ORDER BY id DESC");
+export default async function Later() {
+  const items = await queryItems("SELECT * FROM items WHERE status = 'later' ORDER BY id DESC");
 
   return (
     <div>

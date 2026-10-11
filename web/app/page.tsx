@@ -7,10 +7,8 @@ export const instant = false;
 
 const TAG_ORDER = ["模型发布", "福利资源", "产品动态", "研究进展", "行业动态", "其他"];
 
-export default function Home() {
-  // 阶段 1：数据库里就是最近一次生成的数据，全部按兴趣分排序展示
-  // （阶段 3 接入每日管线后，这里会改成按日期分期的「一期一份」）
-  const items = queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
+export default async function Home() {
+  const items = await queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
 
   // 今日必读：兴趣分 4 分以上的前 3 条
   const must = items.filter((it) => (it.score ?? 0) >= 4).slice(0, 3);

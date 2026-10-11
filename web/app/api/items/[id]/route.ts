@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { execute } from "@/lib/db";
 
 const VALID_STATUSES = new Set(["unread", "read", "later"]);
 
@@ -21,8 +21,8 @@ export async function POST(
     return NextResponse.json({ error: "id 无效" }, { status: 400 });
   }
 
-  const result = getDb().prepare("UPDATE items SET status = ? WHERE id = ?").run(status, itemId);
-  if (result.changes === 0) {
+  const result = await execute("UPDATE items SET status = ? WHERE id = ?", [status, itemId]);
+  if (result.rowsAffected === 0) {
     return NextResponse.json({ error: "条目不存在" }, { status: 404 });
   }
   return NextResponse.json({ ok: true, id: itemId, status });

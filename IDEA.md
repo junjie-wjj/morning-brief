@@ -111,6 +111,11 @@ MVP 明确不做：兴趣画像学习、邮件推送、多用户/账号系统、
 
 ### 路线图 v2（四阶段，全免费层）
 
+> **进度（2026-10-11 晚）：阶段 1 骨架完成**——web/ 目录下 Next.js 16 + TypeScript + Tailwind v4 应用，
+> 数据库用 Node 24 内置 node:sqlite（零依赖，替代 better-sqlite3 规避 Windows 原生编译风险）；
+> 简报页 + 已读/稍后读 + 状态接口已跑通，点击→入库→刷新保持已验证。dev 运行：cd web && npm run dev；导数据：npm run seed。
+> 待办：LLM 限流冷却后重新 seed 拿到摘要数据；下一步进入阶段 2（Turso + Vercel）。
+
 1. **阶段 1 · 本地全栈骨架**（约 1-2 周业余时间）：Next.js + SQLite（better-sqlite3），简报数据入库，已读/稍后读按钮。里程碑：localhost 上点击已读，刷新后状态保持。
 2. **阶段 2 · 上免费云**：数据库换 Turso（免费云 SQLite），应用部署 Vercel（免费）。里程碑：手机可访问，数据持久。（替代原 VPS + Docker 方案，成本 0 元）
 3. **阶段 3 · 管线接入 + 迭代**：CI 生成的数据灌入数据库；多源去重合并；点击行为反馈 LLM 调整打分。里程碑：IDEA.md 的 MVP 闭环。

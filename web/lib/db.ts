@@ -1,6 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
-import path from "node:path";
-import fs from "node:fs";
+import { createClient, type Client } from "@libsql/client";
 
 export type ItemStatus = "unread" | "read" | "later";
 
@@ -17,34 +15,51 @@ export interface ItemRow {
   status: ItemStatus;
 }
 
-let db: DatabaseSync | null = null;
+let client: Client | null = null;
 
-// 单例：整个应用共用一个数据库连接（Node 24 内置 SQLite，无需安装任何依赖）
-export function getDb(): DatabaseSync {
-  if (!db) {
-    const dir = path.join(process.cwd(), "data");
-    fs.mkdirSync(dir, { recursive: true });
-    db = new DatabaseSync(path.join(dir, "brief.db"));
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        link TEXT NOT NULL UNIQUE,
-        date TEXT,
-        source TEXT NOT NULL,
-        title TEXT NOT NULL,
-        zh_title TEXT,
-        summary TEXT,
-        tag TEXT,
-        score INTEGER,
-        status TEXT NOT NULL DEFAULT 'unread'
-      )
-    `);
+// 数据库连接：默认连本地文件（file:./data/brief.db）；
+// 上云后在环境变量里把 LIBSQL_URL 换成 Turso 云库地址（libsql://...），代码一行不用改
+export function getDb(): Client {
+  if (!client) {
+    client = createClient({
+      url: process.env.LIBSQL_URL ?? "file:./data/brief.db",
+      authToken: process.env.LIBSQL_AUTH_TOKEN,
+    });
   }
-  return db;
+  return client;
 }
 
-// 查询条目并把每一行转成纯对象——
+// 建表只执行一次（应用首次读库时自动完成，云端库也用这一句初始化）
+let ready: Promise<unknown> | null = null;
+function initSchema(): Promise<unknown> {
+  ready ??= getDb().execute(`CREATE TABLE IF NOT EXISTS items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    link TEXT NOT NULL UNIQUE,
+    date TEXT,
+    source TEXT NOT NULL,
+    title TEXT NOT NULL,
+    zh_title TEXT,
+    summary TEXT,
+    tag TEXT,
+    score INTEGER,
+    status TEXT NOT NULL DEFAULT 'unread'
+  )`);
+  return ready;
+}
+
+// 查询条目并把每行转成纯对象——
 // 跨过「服务端组件 → 客户端组件」边界传递的数据必须是 plain object
-export function queryItems(sql: string, ...params: (string | number)[]): ItemRow[] {
-  return (getDb().prepare(sql).all(...params) as unknown as ItemRow[]).map((r) => ({ ...r }));
+export async function queryItems(
+  sql: string,
+  ...params: (string | number | null)[]
+): Promise<ItemRow[]> {
+  await initSchema();
+  const rs = await getDb().execute({ sql, args: params });
+  return rs.rows.map((r) => ({ ...r })) as unknown as ItemRow[];
+}
+
+// 写操作（UPDATE / INSERT / DELETE），返回 { rowsAffected, ... }
+export async function execute(sql: string, args: (string | number | null)[]) {
+  await initSchema();
+  return getDb().execute({ sql, args });
 }
