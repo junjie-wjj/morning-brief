@@ -1,6 +1,9 @@
 # 密钥等敏感配置，绝不能提交到 GitHub（否则 key 公开泄露）
 .env
 
+# 本地应用数据库（阶段 1：数据由 seed 脚本从 docs/data.json 重建）
+web/data/
+
 # macOS / 编辑器杂物
 .DS_Store
 Thumbs.db

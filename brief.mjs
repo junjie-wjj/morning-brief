@@ -473,6 +473,22 @@ ${body}
   mkdirSync('docs', { recursive: true });
   writeFileSync('docs/index.html', html);
 
+  // 同步输出结构化数据，供 web 应用导入数据库（阶段 3 会自动化这一步）
+  const dataForApp = {
+    generatedAt: new Date().toISOString(),
+    items: okResults.flatMap((r) => r.items.map((it) => ({
+      link: it.link,
+      date: it.date ? it.date.toISOString() : null,
+      source: r.name,
+      title: it.title,
+      zh: enriched?.get(it.link)?.zh ?? null,
+      summary: enriched?.get(it.link)?.summary ?? null,
+      tag: enriched?.get(it.link)?.tag ?? null,
+      score: enriched?.get(it.link)?.score ?? null,
+    }))),
+  };
+  writeFileSync('docs/data.json', JSON.stringify(dataForApp, null, 2));
+
   for (const r of results) {
     console.log(r.status === 'ok' ? `✓ ${r.name}: ${r.items.length} 条` : `✗ ${r.name}: ${r.status}`);
   }

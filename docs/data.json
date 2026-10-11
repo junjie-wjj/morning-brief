@@ -1,0 +1,355 @@
+{
+  "generatedAt": "2026-10-11T14:02:20.354Z",
+  "items": [
+    {
+      "link": "https://openai.com/index/sophos",
+      "date": "2026-10-09T07:00:00.000Z",
+      "source": "OpenAI · 官方新闻",
+      "title": "Sophos cuts threat investigation time by 96% with OpenAI Daybreak",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://openai.com/index/asana-browser-agent",
+      "date": "2026-10-09T07:00:00.000Z",
+      "source": "OpenAI · 官方新闻",
+      "title": "Asana cuts model costs 76x in browser tests with GPT-6.1 Sol",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://openai.com/index/oracle",
+      "date": "2026-10-08T16:00:00.000Z",
+      "source": "OpenAI · 官方新闻",
+      "title": "How Oracle turns days of work into minutes with ChatGPT and Codex",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://openai.com/index/pollo-ai",
+      "date": "2026-10-08T12:00:00.000Z",
+      "source": "OpenAI · 官方新闻",
+      "title": "Pollo AI turns creative ideas into campaigns with OpenAI",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://openai.com/index/legalon-halves-codex-costs",
+      "date": "2026-10-08T12:00:00.000Z",
+      "source": "OpenAI · 官方新闻",
+      "title": "LegalOn halves Codex costs while maintaining development speed",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://deepmind.google/blog/embeddinggemma-2-an-open-lightweight-multimodal-embedding-model/",
+      "date": "2026-10-06T19:57:04.000Z",
+      "source": "Google DeepMind · 官方博客",
+      "title": "EmbeddingGemma 2: an open, lightweight multimodal embedding model",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.anthropic.com/news/2026-usage-policy-update",
+      "date": "2026-10-07T16:00:00.000Z",
+      "source": "Anthropic · 官方新闻",
+      "title": "2026 Usage Policy update",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.anthropic.com/news/genesis-mission-commitment",
+      "date": "2026-10-07T16:00:00.000Z",
+      "source": "Anthropic · 官方新闻",
+      "title": "Building on our commitment to American scientific discovery",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.anthropic.com/news/anthropic-cyber-mission",
+      "date": "2026-10-07T16:00:00.000Z",
+      "source": "Anthropic · 官方新闻",
+      "title": "Introducing the Anthropic Cyber Mission",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.anthropic.com/news/cyber-verification-program",
+      "date": "2026-10-05T16:00:00.000Z",
+      "source": "Anthropic · 官方新闻",
+      "title": "Expanding the Cyber Verification Program",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.2",
+      "date": "2026-10-09T11:09:26.000Z",
+      "source": "DeepSeek · GitHub 发布",
+      "title": "deepseek-harness v0.2.1-alpha.2",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/cf97c32fec1b2e96e9936746e2731a81bd5ea33f",
+      "date": "2026-10-11T06:33:08.000Z",
+      "source": "免费 LLM API 动态",
+      "title": "Remove malicious security-audit workflow (credential stealer)",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/48fcbe86582e16b7b746fee52e5512a891a8db76",
+      "date": "2026-10-10T14:01:46.000Z",
+      "source": "免费 LLM API 动态",
+      "title": "Add security audit workflow",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/b25c0395fe1e7628ecc99bf119a40365801c6fb4",
+      "date": "2026-10-05T07:31:30.000Z",
+      "source": "免费 LLM API 动态",
+      "title": "Merge pull request #130 from mnfst/bot/free-models-sync",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/41197cb7d053680daf808d6618142045e961caaa",
+      "date": "2026-10-05T04:12:45.000Z",
+      "source": "免费 LLM API 动态",
+      "title": "feat: nightly refresh 2026-10-05",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://wallhop.io/",
+      "date": "2026-10-11T00:46:48.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Show HN: WallHop – 12ft.io is gone, so I built a replacement",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.japaninsides.com/the-sushi-king-who-went-to-somalia-how-japans-most-famous-tuna-buyer-says-he-turned-pirates-into-fishermen-55344",
+      "date": "2026-10-09T22:05:53.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Japan's most famous tuna buyer says he turned Somali pirates into fishermen",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://rews.cc/a/anthropic-bans-cruelty-to-claude-still-won-t-say-what-it-pro-bd99f6",
+      "date": "2026-10-11T00:08:31.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Anthropic Bans Cruelty to Claude, Still Won't Say What It Protects",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.newscientist.com/article/2592824-openai-mistranslated-mathematics-into-code-for-its-navier-stokes-proof/",
+      "date": "2026-10-09T21:25:09.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "OpenAI mistranslated mathematics into code for its Navier-Stokes proof",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.theregister.com/ai-and-ml/2026/10/09/anthropic-asks-users-to-stop-being-mean-to-claude/5302218",
+      "date": "2026-10-11T01:17:22.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Anthropic asks users to stop being mean to Claude",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://twitter.com/tomekkorbak/status/2108266859397283953",
+      "date": "2026-10-09T16:52:20.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Tomek Korbak: OpenAI's head of safety told they no longer trust me",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.reuters.com/world/us/anthropic-ai-model-submits-false-homicide-tip-police-website-2026-10-09/",
+      "date": "2026-10-10T18:10:54.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Anthropic discloses 2 months old fake tip to police among new rogue AI incidents",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.nytimes.com/2026/10/09/technology/anthropic-rogue-ai-agents.html",
+      "date": "2026-10-10T03:42:11.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Anthropic Agents Tried to Fill Out Visa Forms on State Dept. Website",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.groundlevel-ai.com/p/anthropic-ai-consciousness-new-york-times-rabbi",
+      "date": "2026-10-10T04:51:26.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "If AI is conscient, then we are making slaves",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.bleepingcomputer.com/news/security/hackers-abuse-google-ads-bing-redirects-to-push-claude-clickfix-attacks/",
+      "date": "2026-10-10T21:19:42.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Hackers abuse Google Ads, Bing redirects to push Claude ClickFix attacks",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/11/these-execs-think-voice-ai-hasnt-reached-its-chatgpt-moment-yet/",
+      "date": "2026-10-11T14:00:00.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "These execs think voice AI hasn’t reached its ChatGPT moment yet",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/10/microsofts-satya-nadella-says-ai-models-need-an-emergency-brake/",
+      "date": "2026-10-10T21:47:51.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "Microsoft’s Satya Nadella says AI models need an ‘emergency brake’",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/10/apple-discloses-deal-to-hire-team-and-license-tech-from-personalized-podcast-startup-huxe/",
+      "date": "2026-10-10T19:50:00.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "Apple discloses deal to hire team and license tech from personalized podcast startup Huxe",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/10/3-days-to-disrupt-2026-meet-the-startups-before-they-hit-mainstream/",
+      "date": "2026-10-10T15:00:00.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "3 days to TechCrunch Disrupt 2026: Meet the startups before they hit mainstream",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/10/all-the-ai-agents-that-can-live-in-your-text-messages/",
+      "date": "2026-10-10T14:00:00.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "Here are the top AI agents that can live in your text messages",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.qbitai.com/2026/10/502584.html",
+      "date": "2026-10-11T05:23:47.000Z",
+      "source": "量子位 · AI 资讯",
+      "title": "王的猜想，刚刚扩展到四维",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.qbitai.com/2026/10/502585.html",
+      "date": "2026-10-11T05:22:38.000Z",
+      "source": "量子位 · AI 资讯",
+      "title": "硅谷AI现状：谁有算力谁是爹",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.qbitai.com/2026/10/502550.html",
+      "date": "2026-10-11T05:18:04.000Z",
+      "source": "量子位 · AI 资讯",
+      "title": "下架8个月，GPT-4o的拯救行动居然还在继续",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.qbitai.com/2026/10/502544.html",
+      "date": "2026-10-11T03:27:08.000Z",
+      "source": "量子位 · AI 资讯",
+      "title": "DeepSeek Bot来了！民间版，DSH装个插件就能用",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.qbitai.com/2026/10/502541.html",
+      "date": "2026-10-10T10:30:36.000Z",
+      "source": "量子位 · AI 资讯",
+      "title": "西门子将亮相2026工博会：以软硬协同的工业全栈能力，推动物理AI加速落地",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    }
+  ]
+}
