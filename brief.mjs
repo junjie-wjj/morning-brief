@@ -193,14 +193,25 @@ async function fetchGhCommits(source) {
 // ---------- AI 加工：中文标题 + 摘要 + 分类 + 兴趣打分（OpenAI 兼容接口） ----------
 
 async function chat(messages) {
-  const res = await fetch(`${LLM_BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LLM_API_KEY}` },
-    body: JSON.stringify({ model: LLM_MODEL, temperature: 0.3, messages }),
-    signal: AbortSignal.timeout(120_000),
-  });
-  if (!res.ok) throw new Error(`LLM HTTP ${res.status}`);
-  return (await res.json()).choices?.[0]?.message?.content ?? '';
+  let lastErr;
+  // 429/5xx/网络错误自动重试 4 次（免费模型对数据中心 IP 限流严格，重试间隔递增）
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LLM_API_KEY}` },
+        body: JSON.stringify({ model: LLM_MODEL, temperature: 0.3, messages }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (res.ok) return (await res.json()).choices?.[0]?.message?.content ?? '';
+      lastErr = new Error(`LLM HTTP ${res.status}`);
+      if (res.status !== 429 && res.status < 500) throw lastErr; // 401/403 等重试无意义
+    } catch (err) {
+      lastErr = err;
+    }
+    if (attempt < 4) await new Promise((r) => setTimeout(r, 15_000 * attempt));
+  }
+  throw lastErr;
 }
 
 async function enrichBatch(chunk) {
