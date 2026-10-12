@@ -2,6 +2,26 @@
 
 每天自动抓取 AI 领域的官方信息源，生成一份纯静态的简报网页。**零依赖、零成本**；可选接入智谱免费的 GLM-Flash 模型，自动把条目加工成「中文标题 + 摘要 + 兴趣打分 + 低分折叠」（不配置则展示原始抓取列表）。这是正式开发（见 IDEA.md）之前的 V0 验证版，先跑两周确认"我真的会每天看"，再决定是否扩展。
 
+## 在线地址
+
+| 版本 | 地址 | 说明 |
+|---|---|---|
+| **交互应用（推荐）** | https://morning-brief-junjie.netlify.app | Next.js + Turso 云数据库；带已读/稍后读，数据云端保存；每天早上自动更新 |
+| 静态简报 | https://junjie-wjj.github.io/morning-brief/ | V0 纯静态页，每天 7 点自动生成 |
+
+## 本地开发（应用）
+
+```bash
+cd web
+npm run dev            # 启动本地应用 → http://localhost:3000（用本地文件数据库）
+
+# 更新数据（在仓库根目录执行抓取，然后导入）
+node brief.mjs         # 抓取 + LLM 加工 → docs/data.json
+cd web
+npm run seed           # 导入本地数据库（开发用）
+npm run seed:cloud     # 导入云端 Turso（线上应用的数据源，需要 web/.env.cloud）
+```
+
 ## 信息源（12 个，以 AI 垂直为主）
 
 | 栏目 | 来源 | 时效窗口 |

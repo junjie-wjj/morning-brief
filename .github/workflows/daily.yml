@@ -19,9 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - run: node brief.mjs
         env:
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}   # 仓库 Settings → Secrets and variables → Actions 里添加
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      - name: 同步最新数据到云端应用数据库（Turso）
+        continue-on-error: true   # 即使这步失败，静态简报照常发布
+        run: |
+          npm ci
+          npm run seed:cloud
+        working-directory: web
+        env:
+          LIBSQL_URL: ${{ secrets.LIBSQL_URL }}
+          LIBSQL_AUTH_TOKEN: ${{ secrets.LIBSQL_AUTH_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-12T06:07:36.783Z",
+  "generatedAt": "2026-10-12T06:25:00.635Z",
   "items": [
     {
       "link": "https://openai.com/index/sophos",
@@ -96,56 +96,6 @@
       "date": "2026-10-05T16:00:00.000Z",
       "source": "Anthropic · 官方新闻",
       "title": "Expanding the Cyber Verification Program",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.2",
-      "date": "2026-10-09T11:09:26.000Z",
-      "source": "DeepSeek · GitHub 发布",
-      "title": "deepseek-harness v0.2.1-alpha.2",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/cf97c32fec1b2e96e9936746e2731a81bd5ea33f",
-      "date": "2026-10-11T06:33:08.000Z",
-      "source": "免费 LLM API 动态",
-      "title": "Remove malicious security-audit workflow (credential stealer)",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/48fcbe86582e16b7b746fee52e5512a891a8db76",
-      "date": "2026-10-10T14:01:46.000Z",
-      "source": "免费 LLM API 动态",
-      "title": "Add security audit workflow",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/b25c0395fe1e7628ecc99bf119a40365801c6fb4",
-      "date": "2026-10-05T07:31:30.000Z",
-      "source": "免费 LLM API 动态",
-      "title": "Merge pull request #130 from mnfst/bot/free-models-sync",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://github.com/mnfst/awesome-free-llm-apis/commit/41197cb7d053680daf808d6618142045e961caaa",
-      "date": "2026-10-05T04:12:45.000Z",
-      "source": "免费 LLM API 动态",
-      "title": "feat: nightly refresh 2026-10-05",
       "zh": null,
       "summary": null,
       "tag": null,
@@ -342,10 +292,10 @@
       "score": null
     },
     {
-      "link": "https://www.reddit.com/r/LocalLLaMA/comments/1x3bpfl/whistle_speech_to_text_in_169_mb/",
-      "date": "2026-10-11T15:55:27.000Z",
+      "link": "https://www.reddit.com/r/LocalLLaMA/comments/1x3n8ex/opencode_2026_is_out_if_you_need_to_constantly/",
+      "date": "2026-10-11T23:56:26.000Z",
       "source": "r/LocalLLaMA · 社区热帖",
-      "title": "Whistle: speech to text in 16.9 MB",
+      "title": "OpenCode 2.0.26 is out, if you need to constantly prompt \"Continue\" it's not just your bot AFAIK",
       "zh": null,
       "summary": null,
       "tag": null,
