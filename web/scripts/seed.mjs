@@ -5,8 +5,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// 简易 .env.local 读取（零依赖）：Next.js 会自动加载它，但本脚本需要手动读
-const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env.local");
+// 简易 .env 读取（零依赖）：默认读 .env.local（本地文件库）；
+// 加 --cloud 参数读 .env.cloud（Turso 云库）
+const envName = process.argv.includes("--cloud") ? ".env.cloud" : ".env.local";
+const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", envName);
 try {
   for (const line of readFileSync(envFile, "utf8").split("\n")) {
     const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);

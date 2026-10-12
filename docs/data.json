@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-11T14:02:20.354Z",
+  "generatedAt": "2026-10-12T06:07:36.783Z",
   "items": [
     {
       "link": "https://openai.com/index/sophos",
@@ -152,20 +152,20 @@
       "score": null
     },
     {
-      "link": "https://wallhop.io/",
-      "date": "2026-10-11T00:46:48.000Z",
+      "link": "https://twitter.com/karpathy/status/2109361546505966046",
+      "date": "2026-10-11T20:20:52.000Z",
       "source": "Hacker News · AI 热帖",
-      "title": "Show HN: WallHop – 12ft.io is gone, so I built a replacement",
+      "title": "The gap in shared understanding of LLM capability is widening",
       "zh": null,
       "summary": null,
       "tag": null,
       "score": null
     },
     {
-      "link": "https://www.japaninsides.com/the-sushi-king-who-went-to-somalia-how-japans-most-famous-tuna-buyer-says-he-turned-pirates-into-fishermen-55344",
-      "date": "2026-10-09T22:05:53.000Z",
+      "link": "https://wallhop.io/",
+      "date": "2026-10-11T00:46:48.000Z",
       "source": "Hacker News · AI 热帖",
-      "title": "Japan's most famous tuna buyer says he turned Somali pirates into fishermen",
+      "title": "Show HN: WallHop – 12ft.io is gone, so I built a replacement",
       "zh": null,
       "summary": null,
       "tag": null,
@@ -182,30 +182,10 @@
       "score": null
     },
     {
-      "link": "https://www.newscientist.com/article/2592824-openai-mistranslated-mathematics-into-code-for-its-navier-stokes-proof/",
-      "date": "2026-10-09T21:25:09.000Z",
-      "source": "Hacker News · AI 热帖",
-      "title": "OpenAI mistranslated mathematics into code for its Navier-Stokes proof",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
       "link": "https://www.theregister.com/ai-and-ml/2026/10/09/anthropic-asks-users-to-stop-being-mean-to-claude/5302218",
       "date": "2026-10-11T01:17:22.000Z",
       "source": "Hacker News · AI 热帖",
       "title": "Anthropic asks users to stop being mean to Claude",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://twitter.com/tomekkorbak/status/2108266859397283953",
-      "date": "2026-10-09T16:52:20.000Z",
-      "source": "Hacker News · AI 热帖",
-      "title": "Tomek Korbak: OpenAI's head of safety told they no longer trust me",
       "zh": null,
       "summary": null,
       "tag": null,
@@ -222,30 +202,230 @@
       "score": null
     },
     {
-      "link": "https://www.nytimes.com/2026/10/09/technology/anthropic-rogue-ai-agents.html",
-      "date": "2026-10-10T03:42:11.000Z",
+      "link": "https://marcobambini.substack.com/p/we-solved-sqlites-single-writer-limitation",
+      "date": "2026-10-11T16:25:25.000Z",
       "source": "Hacker News · AI 热帖",
-      "title": "Anthropic Agents Tried to Fill Out Visa Forms on State Dept. Website",
+      "title": "We solved SQLite's single-writer limitation",
       "zh": null,
       "summary": null,
       "tag": null,
       "score": null
     },
     {
-      "link": "https://www.groundlevel-ai.com/p/anthropic-ai-consciousness-new-york-times-rabbi",
-      "date": "2026-10-10T04:51:26.000Z",
+      "link": "https://united24media.com/war-in-ukraine/ukrainian-drones-reach-russias-komi-republic-striking-lukoil-refinery-1700-km-away-23276",
+      "date": "2026-10-11T15:57:05.000Z",
       "source": "Hacker News · AI 热帖",
-      "title": "If AI is conscient, then we are making slaves",
+      "title": "Ukrainian Drones Strike Russia's Lukoil Refinery 1,700 Km Away",
       "zh": null,
       "summary": null,
       "tag": null,
       "score": null
     },
     {
-      "link": "https://www.bleepingcomputer.com/news/security/hackers-abuse-google-ads-bing-redirects-to-push-claude-clickfix-attacks/",
-      "date": "2026-10-10T21:19:42.000Z",
+      "link": "https://dair-community.social/@emilymbender/117412868905734653",
+      "date": "2026-10-11T18:16:54.000Z",
       "source": "Hacker News · AI 热帖",
-      "title": "Hackers abuse Google Ads, Bing redirects to push Claude ClickFix attacks",
+      "title": "Anthropic is out with new nonsense about Claude",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.phoronix.com/news/Linus-Torvalds-Claude-Code",
+      "date": "2026-10-12T01:57:00.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "Linus Torvalds Working on a Hefty Linux Kernel Improvement with Claude Code",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://apnews.com/article/openai-chatgpt-ai-artificial-intelligence-safety-789d4f5293fba45a22fcb62ebfbc2a41",
+      "date": "2026-10-11T20:35:03.000Z",
+      "source": "Hacker News · AI 热帖",
+      "title": "OpenAI fires 3 safety researchers in dispute over AI risks",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://huggingface.co/blog/allenai/impactful-scheduling",
+      "date": "2026-10-09T15:20:29.000Z",
+      "source": "Hugging Face · 官方博客",
+      "title": "Impactful scheduling for GPU clusters",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://huggingface.co/blog/building-with-ml-intern",
+      "date": "2026-10-08T00:00:00.000Z",
+      "source": "Hugging Face · 官方博客",
+      "title": "The model that didn't exist, so you made it yourself",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://huggingface.co/blog/LiquidAI/open-d1",
+      "date": "2026-10-07T16:54:33.000Z",
+      "source": "Hugging Face · 官方博客",
+      "title": "Multimodal open d1 decision models for the edge",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://huggingface.co/blog/tiiuae/falcon-asr",
+      "date": "2026-10-07T13:21:03.000Z",
+      "source": "Hugging Face · 官方博客",
+      "title": "Introducing Falcon ASR",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://huggingface.co/blog/nvidia/nemotron-ioi-and-imo-2026",
+      "date": "2026-10-07T12:45:31.000Z",
+      "source": "Hugging Face · 官方博客",
+      "title": "One Model Family, Two Gold-Level Results: Fine-Tuning Nemotron for IOI and IMO",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.reddit.com/r/LocalLLaMA/comments/1x3gpyi/every_model_that_can_be_run_on_1016gb_vram_ranked/",
+      "date": "2026-10-11T19:12:36.000Z",
+      "source": "r/LocalLLaMA · 社区热帖",
+      "title": "Every Model That Can Be Run On 10-16GB VRAM Ranked",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.reddit.com/r/LocalLLaMA/comments/1x3th4p/decision_30_open_multimodal_decision_models_from/",
+      "date": "2026-10-12T05:26:01.000Z",
+      "source": "r/LocalLLaMA · 社区热帖",
+      "title": "Decision 3.0: open, multimodal decision models from 0.6B to 27B. Ranks #1 on both Jev Decision Index boards",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.reddit.com/r/LocalLLaMA/comments/1x37tg6/heres_why_rtx_5090_costs_5000_ai_firms_are_buying/",
+      "date": "2026-10-11T13:08:43.000Z",
+      "source": "r/LocalLLaMA · 社区热帖",
+      "title": "Here’s why RTX 5090 costs $5,000: AI firms are buying gaming GPUs by the pallet",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.reddit.com/r/LocalLLaMA/comments/1x3fxzj/strata_for_glm53_flash_is_here_for_some_project/",
+      "date": "2026-10-11T18:42:01.000Z",
+      "source": "r/LocalLLaMA · 社区热帖",
+      "title": "\"Strata\" for GLM5.3 Flash is here for some! Project Maya",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://www.reddit.com/r/LocalLLaMA/comments/1x3bpfl/whistle_speech_to_text_in_169_mb/",
+      "date": "2026-10-11T15:55:27.000Z",
+      "source": "r/LocalLLaMA · 社区热帖",
+      "title": "Whistle: speech to text in 16.9 MB",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://simonwillison.net/2026/Oct/11/dwarf-fortress/",
+      "date": "2026-10-11T00:52:37.000Z",
+      "source": "Simon Willison · LLM 实践博客",
+      "title": "Dwarf Fortress uses version control now",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://simonwillison.net/2026/Oct/10/python-actions/",
+      "date": "2026-10-10T23:58:04.000Z",
+      "source": "Simon Willison · LLM 实践博客",
+      "title": "Python 3.15.0 added to actions/python-versions",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://simonwillison.net/2026/Oct/10/the-new-york-times/",
+      "date": "2026-10-10T02:04:12.000Z",
+      "source": "Simon Willison · LLM 实践博客",
+      "title": "Quoting The New York Times",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://simonwillison.net/2026/Oct/9/deno-is-joining-cloudflare/",
+      "date": "2026-10-09T22:48:37.000Z",
+      "source": "Simon Willison · LLM 实践博客",
+      "title": "Deno is joining Cloudflare",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://simonwillison.net/2026/Oct/9/matthew-green/",
+      "date": "2026-10-09T15:02:29.000Z",
+      "source": "Simon Willison · LLM 实践博客",
+      "title": "Quoting Matthew Green",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/11/will-the-homeview-be-apples-first-smart-home-success/",
+      "date": "2026-10-11T21:14:40.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "Will the HomeView be Apple’s first smart home success?",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/11/48-hours-to-techcrunch-disrupt-2026-hear-directly-from-the-people-building-whats-next/",
+      "date": "2026-10-11T19:00:00.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "48 hours to TechCrunch Disrupt 2026 — hear directly from the people building what’s next",
+      "zh": null,
+      "summary": null,
+      "tag": null,
+      "score": null
+    },
+    {
+      "link": "https://techcrunch.com/2026/10/11/can-the-ai-industry-persuade-data-center-opponents-by-getting-rid-of-ndas/",
+      "date": "2026-10-11T16:52:33.000Z",
+      "source": "TechCrunch · AI 新闻",
+      "title": "Can the AI industry persuade data center opponents by getting rid of NDAs?",
       "zh": null,
       "summary": null,
       "tag": null,
@@ -266,36 +446,6 @@
       "date": "2026-10-10T21:47:51.000Z",
       "source": "TechCrunch · AI 新闻",
       "title": "Microsoft’s Satya Nadella says AI models need an ‘emergency brake’",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://techcrunch.com/2026/10/10/apple-discloses-deal-to-hire-team-and-license-tech-from-personalized-podcast-startup-huxe/",
-      "date": "2026-10-10T19:50:00.000Z",
-      "source": "TechCrunch · AI 新闻",
-      "title": "Apple discloses deal to hire team and license tech from personalized podcast startup Huxe",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://techcrunch.com/2026/10/10/3-days-to-disrupt-2026-meet-the-startups-before-they-hit-mainstream/",
-      "date": "2026-10-10T15:00:00.000Z",
-      "source": "TechCrunch · AI 新闻",
-      "title": "3 days to TechCrunch Disrupt 2026: Meet the startups before they hit mainstream",
-      "zh": null,
-      "summary": null,
-      "tag": null,
-      "score": null
-    },
-    {
-      "link": "https://techcrunch.com/2026/10/10/all-the-ai-agents-that-can-live-in-your-text-messages/",
-      "date": "2026-10-10T14:00:00.000Z",
-      "source": "TechCrunch · AI 新闻",
-      "title": "Here are the top AI agents that can live in your text messages",
       "zh": null,
       "summary": null,
       "tag": null,
