@@ -1,8 +1,8 @@
 import { queryItems } from "@/lib/db";
 import ItemCard from "../components/ItemCard";
 
-// 每次请求实时读数据库再返回页面
-export const instant = false;
+// 每次请求实时读数据库再渲染
+export const dynamic = "force-dynamic";
 
 export default async function Later() {
   const items = await queryItems("SELECT * FROM items WHERE status = 'later' ORDER BY id DESC");

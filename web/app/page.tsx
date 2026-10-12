@@ -2,8 +2,8 @@ import Link from "next/link";
 import { queryItems } from "@/lib/db";
 import ItemCard from "./components/ItemCard";
 
-// 每次请求实时读数据库再返回页面（阻塞式渲染，阶段 1 采用最直白的写法）
-export const instant = false;
+// 每次请求实时读数据库再渲染（经典 SSR 模式）
+export const dynamic = "force-dynamic";
 
 const TAG_ORDER = ["模型发布", "福利资源", "产品动态", "研究进展", "行业动态", "其他"];
 

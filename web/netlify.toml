@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Netlify 的 Next.js 运行时：让 Netlify 支持 Next.js 的服务端渲染与 API 路由
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
