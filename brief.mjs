@@ -36,6 +36,14 @@ try {
 const LLM_API_KEY = process.env.LLM_API_KEY ?? '';
 const LLM_BASE_URL = process.env.LLM_BASE_URL ?? 'https://open.bigmodel.cn/api/paas/v4';
 const LLM_MODEL = process.env.LLM_MODEL ?? 'glm-4.7-flash';
+// 备用模型：免费档主模型经常整体限流（HTTP 429 / 错误码 1302「账户速率限制」、
+// 1305「模型访问量过大」），此时自动改用备用模型，避免当天完全没有 AI 加工。
+// 逗号分隔，按顺序降级；设 LLM_MODEL_FALLBACKS='' 可关闭。
+const LLM_FALLBACKS = (process.env.LLM_MODEL_FALLBACKS ?? 'glm-4-flash')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+const LLM_MODELS = [...new Set([LLM_MODEL, ...LLM_FALLBACKS])];
+// 记录本次实际可用的模型（主模型被限流时会降级），用于日志与页面署名
+let activeModel = LLM_MODEL;
 
 // ---------- 小工具 ----------
 
@@ -192,7 +200,7 @@ async function fetchGhCommits(source) {
 
 // ---------- AI 加工：中文标题 + 摘要 + 分类 + 兴趣打分（OpenAI 兼容接口） ----------
 
-async function chat(messages) {
+async function chat(messages, model) {
   let lastErr;
   // 429/5xx/网络错误自动重试 4 次（免费模型对数据中心 IP 限流严格，重试间隔递增）
   for (let attempt = 1; attempt <= 4; attempt++) {
@@ -200,7 +208,7 @@ async function chat(messages) {
       const res = await fetch(`${LLM_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LLM_API_KEY}` },
-        body: JSON.stringify({ model: LLM_MODEL, temperature: 0.3, messages }),
+        body: JSON.stringify({ model, temperature: 0.3, messages }),
         signal: AbortSignal.timeout(120_000),
       });
       if (res.ok) return (await res.json()).choices?.[0]?.message?.content ?? '';
@@ -214,9 +222,29 @@ async function chat(messages) {
   throw lastErr;
 }
 
+// 按 LLM_MODELS 顺序逐个尝试：某个模型整体限流时自动降级到下一个。
+// 每个模型内部仍有 chat() 的 4 次重试；全部模型都失败才抛出。
+async function chatWithFallback(messages) {
+  let lastErr;
+  for (const model of LLM_MODELS) {
+    try {
+      const content = await chat(messages, model);
+      if (model !== activeModel) {
+        console.log(`ℹ 主模型 ${activeModel} 限流，已降级到 ${model}`);
+        activeModel = model;
+      }
+      return content;
+    } catch (err) {
+      lastErr = err;
+      if (LLM_MODELS.length > 1) console.warn(`⚠ 模型 ${model} 不可用（${err.message}），尝试下一个`);
+    }
+  }
+  throw lastErr;
+}
+
 async function enrichBatch(chunk) {
   const listing = JSON.stringify(chunk.map((it, idx) => ({ i: idx, src: it.source, title: it.title })));
-  const content = await chat([
+  const content = await chatWithFallback([
     { role: 'system', content: '你是严谨的科技简报编辑，输出永远是纯 JSON。' },
     { role: 'user', content: `下面是今日 AI 资讯条目。请为每一条输出：
 - zh：中文标题（15 字左右；原文已是中文则沿用；专有名词保留英文，如 GPT、Claude、DeepSeek）
@@ -246,11 +274,22 @@ async function enrichBatch(chunk) {
 
 async function enrichWithLLM(items) {
   const merged = new Map();
+  const failed = [];
+  // 分批加工；单批失败不再拖垮全局——已加工成功的批次照常保留，
+  // 只有全部批次都失败才降级为原始抓取（否则一次限流就丢掉当天全部摘要）。
   for (let i = 0; i < items.length; i += 40) {
-    const part = await enrichBatch(items.slice(i, i + 40));
-    for (const [k, v] of part) merged.set(k, v);
+    const chunk = items.slice(i, i + 40);
+    try {
+      const part = await enrichBatch(chunk);
+      for (const [k, v] of part) merged.set(k, v);
+    } catch (err) {
+      failed.push(err);
+    }
   }
-  if (!merged.size) throw new Error('模型未返回有效条目');
+  if (!merged.size) throw (failed[0] ?? new Error('模型未返回有效条目'));
+  if (failed.length) {
+    console.warn(`⚠ AI 加工部分失败：${failed.length} 批未成功（${failed[0].message}），其余照常输出`);
+  }
   return merged;
 }
 
@@ -421,7 +460,7 @@ async function main() {
     ? renderAiPage(flat, enriched, { failedNote })
     : `${aiBanner}${results.map(renderSection).join('\n')}`;
   const sub = enriched
-    ? `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${flat.length} 条 · 摘要与打分由 ${escapeHtml(LLM_MODEL)} 生成，仅供导读，以原文为准`
+    ? `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${flat.length} 条 · 摘要与打分由 ${escapeHtml(activeModel)} 生成，仅供导读，以原文为准`
     : `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${total} 条 · 原始抓取（无 AI 加工）`;
 
   const html = `<!DOCTYPE html>
@@ -493,7 +532,7 @@ ${body}
     console.log(r.status === 'ok' ? `✓ ${r.name}: ${r.items.length} 条` : `✗ ${r.name}: ${r.status}`);
   }
   if (enriched) {
-    console.log(`✓ AI 加工（${LLM_MODEL}）：${enriched.size}/${flat.length} 条获得中文摘要与打分`);
+    console.log(`✓ AI 加工（${activeModel}）：${enriched.size}/${flat.length} 条获得中文摘要与打分`);
   } else if (aiNote) {
     console.log(`✗ ${aiNote}`);
   }

@@ -8,5 +8,8 @@ web/data/
 .DS_Store
 Thumbs.db
 
+# 临时备份文件（如修复/回填时手动留下的 docs/data.json.bak）
+*.bak
+
 # Local Netlify folder
 .netlify

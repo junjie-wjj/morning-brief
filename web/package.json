@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
-    "seed:cloud": "node scripts/seed.mjs --cloud"
+    "seed:cloud": "node scripts/seed.mjs --cloud",
+    "backfill": "node scripts/backfill.mjs",
+    "backfill:local": "node scripts/backfill.mjs --local"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
