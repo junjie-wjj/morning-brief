@@ -13,6 +13,12 @@ export interface ItemRow {
   tag: string | null;
   score: number | null;
   status: ItemStatus;
+  // 原文精简版（由 brief.mjs 在抓取阶段生成，见 lib/extract.mjs）：
+  // points 为空表示没生成，points_reason 说明原因或分段覆盖情况
+  points: string | null;
+  points_reason: string | null;
+  body_chars: number | null;
+  body_via: string | null;
 }
 
 let client: Client | null = null;
@@ -32,18 +38,41 @@ export function getDb(): Client {
 // 建表只执行一次（应用首次读库时自动完成，云端库也用这一句初始化）
 let ready: Promise<unknown> | null = null;
 function initSchema(): Promise<unknown> {
-  ready ??= getDb().execute(`CREATE TABLE IF NOT EXISTS items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    link TEXT NOT NULL UNIQUE,
-    date TEXT,
-    source TEXT NOT NULL,
-    title TEXT NOT NULL,
-    zh_title TEXT,
-    summary TEXT,
-    tag TEXT,
-    score INTEGER,
-    status TEXT NOT NULL DEFAULT 'unread'
-  )`);
+  // 新库直接带上精简版相关列
+  ready ??= (async () => {
+    await getDb().execute(`CREATE TABLE IF NOT EXISTS items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      link TEXT NOT NULL UNIQUE,
+      date TEXT,
+      source TEXT NOT NULL,
+      title TEXT NOT NULL,
+      zh_title TEXT,
+      summary TEXT,
+      tag TEXT,
+      score INTEGER,
+      status TEXT NOT NULL DEFAULT 'unread',
+      points TEXT,
+      points_reason TEXT,
+      body_chars INTEGER,
+      body_via TEXT
+    )`);
+
+    // 旧库补列：SQLite 的 ALTER TABLE ADD COLUMN 对已存在的列会报错，
+    // 所以先查 PRAGMA 再补，保证应用在任何库上都能安全自迁移。
+    const existing = new Set(
+      (await getDb().execute("PRAGMA table_info(items)")).rows.map((r) => String(r.name)),
+    );
+    const cols: [string, string][] = [
+      ["points", "TEXT"],
+      ["points_reason", "TEXT"],
+      ["body_chars", "INTEGER"],
+      ["body_via", "TEXT"],
+    ];
+    for (const [name, type] of cols) {
+      if (existing.has(name)) continue;
+      await getDb().execute(`ALTER TABLE items ADD COLUMN ${name} ${type}`);
+    }
+  })();
   return ready;
 }
 
