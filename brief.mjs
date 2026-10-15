@@ -45,6 +45,23 @@ const LLM_MODELS = [...new Set([LLM_MODEL, ...LLM_FALLBACKS])];
 // 记录本次实际可用的模型（主模型被限流时会降级），用于日志与页面署名
 let activeModel = LLM_MODEL;
 
+// ---------- 原文精简版（「不打开网页也能看」） ----------
+// 抓正文 → 分段 → 逐段抽取 → 合并成要点。分段是「关键信息不漏」的结构性保证：
+// 一次性把 8000 字塞给模型，中段信息最容易丢。
+import { fetchArticleBody, trimBoilerplate } from './lib/article.mjs';
+import {
+  splitIntoChunks, buildExtractPrompt, mergeExtracts, formatPoints,
+  buildReducePrompt, applyReduced,
+} from './lib/extract.mjs';
+
+// 成本控制：只对高分条目做（正文比标题长几十倍，全量会让调用量涨十倍以上）。
+// 想全量就把 POINTS_MIN_SCORE 设为 1；完全关掉用 --skip-points 或 POINTS_ENABLED=0。
+const POINTS_ENABLED = process.env.POINTS_ENABLED !== '0' && !process.argv.includes('--skip-points');
+const POINTS_MIN_SCORE = Number(process.env.POINTS_MIN_SCORE ?? 4);
+const POINTS_MAX_ITEMS = Number(process.env.POINTS_MAX_ITEMS ?? 15);
+const POINTS_CONCURRENCY = Number(process.env.POINTS_CONCURRENCY ?? 3);
+const POINTS_CHUNK_CHARS = Number(process.env.POINTS_CHUNK_CHARS ?? 2000);
+
 // ---------- 小工具 ----------
 
 const decodeEntities = (s) => s
@@ -293,6 +310,105 @@ async function enrichWithLLM(items) {
   return merged;
 }
 
+// ---------- 原文精简版：抓正文 → 分段 → 逐段抽取 → 合并 ----------
+
+/** 抽取一段正文的要点；失败返回 null（由调用方决定降级） */
+async function extractChunk(chunk, meta) {
+  const content = await chatWithFallback([
+    { role: 'system', content: '你是严谨的科技简报编辑，输出永远是纯 JSON。' },
+    { role: 'user', content: buildExtractPrompt(chunk, meta) },
+  ]);
+  const cleaned = content.replace(/```(?:json)?/g, '').trim();
+  return JSON.parse(cleaned.slice(cleaned.indexOf('{'), cleaned.lastIndexOf('}') + 1));
+}
+
+/**
+ * 为一条资讯生成「原文精简版」。
+ * 返回 { points, bodyChars, bodyVia, bodyReason }；抓不到正文时 points 为空串，
+ * 并带上原因 —— 页面要如实标注，而不是假装成功。
+ */
+async function buildPoints(item) {
+  const art = await fetchArticleBody(item.link);
+  if (!art.body) return { points: '', bodyChars: 0, bodyVia: null, bodyReason: art.reason };
+
+  const body = trimBoilerplate(art.body);
+  const chunks = splitIntoChunks(body, POINTS_CHUNK_CHARS);
+  const parts = [];
+  for (let i = 0; i < chunks.length; i++) {
+    try {
+      parts.push(await extractChunk(chunks[i], {
+        index: i + 1, total: chunks.length, title: item.title,
+      }));
+    } catch { /* 单段失败不拖垮整条：其余段落照常合并 */ }
+  }
+
+  let merged = mergeExtracts(parts);
+
+  // 二次压缩：分段抽取保证「不漏」，但直接堆起来会变成流水账
+  //（实测 4453 字的文章产出 1676 字 / 34 行，几乎等于原文）。
+  // 只在多段时才压：单段本来就短，再压一次纯属浪费调用。
+  let reduced = false;
+  if (chunks.length > 1 && merged.facts.length > 0) {
+    try {
+      const content = await chatWithFallback([
+        { role: 'system', content: '你是严谨的科技简报编辑，输出永远是纯 JSON。' },
+        { role: 'user', content: buildReducePrompt(merged, { title: item.title }) },
+      ]);
+      const cleaned = content.replace(/```(?:json)?/g, '').trim();
+      const parsed = JSON.parse(cleaned.slice(cleaned.indexOf('{'), cleaned.lastIndexOf('}') + 1));
+      merged = applyReduced(merged, parsed);
+      reduced = true;
+    } catch { /* 压缩失败就用未压缩的合并结果，不影响可用性 */ }
+  }
+
+  return {
+    points: formatPoints(merged),
+    bodyChars: body.length,
+    bodyVia: art.via,
+    // 段落覆盖情况如实记录：漏了哪段要能看出来，这是「不漏」的可核对凭据
+    bodyReason: [
+      parts.length < chunks.length ? `${parts.length}/${chunks.length} 段抽取成功` : '',
+      reduced ? '' : (chunks.length > 1 ? '未压缩（二次压缩失败，保留完整要点）' : ''),
+    ].filter(Boolean).join('；') || null,
+  };
+}
+
+/**
+ * 为高分条目批量生成精简版。
+ * 返回 Map<link, points 信息>；整体失败不影响主流程（摘要与静态页照常输出）。
+ */
+async function buildAllPoints(items) {
+  const targets = items
+    .filter((it) => (it.en?.score ?? 0) >= POINTS_MIN_SCORE)
+    .slice(0, POINTS_MAX_ITEMS);
+  if (!targets.length) return new Map();
+
+  console.log(`\n原文精简版：对 ${targets.length} 条高分条目（score ≥ ${POINTS_MIN_SCORE}）抓正文并分段抽取…`);
+  const out = new Map();
+  let done = 0;
+  let failed = 0;
+
+  // 限并发：既压住限流，也不至于串行跑太久
+  for (let i = 0; i < targets.length; i += POINTS_CONCURRENCY) {
+    const batch = targets.slice(i, i + POINTS_CONCURRENCY);
+    const results = await Promise.allSettled(batch.map(buildPoints));
+    results.forEach((r, k) => {
+      const it = batch[k];
+      if (r.status === 'fulfilled') {
+        out.set(it.link, r.value);
+        if (r.value.points) done++; else failed++;
+      } else {
+        failed++;
+        out.set(it.link, { points: '', bodyChars: 0, bodyVia: null, bodyReason: r.reason?.message ?? '未知错误' });
+      }
+    });
+    console.log(`  进度 ${Math.min(i + POINTS_CONCURRENCY, targets.length)}/${targets.length}（成功 ${done}，失败 ${failed}）`);
+  }
+
+  console.log(`✓ 原文精简版：${done}/${targets.length} 条生成成功${failed ? `，${failed} 条失败（页面会如实标注原因）` : ''}`);
+  return out;
+}
+
 // GitHub 组织的 Release 动态：先列最近活跃的仓库，再逐个查 Release。
 // 官方公开 API，无鉴权限流 60 次/小时；每天每组织 1 + 6 次调用，手动重跑也不会触发限流。
 async function fetchGitHubReleases(source) {
@@ -455,6 +571,17 @@ async function main() {
     }
   }
 
+  // 原文精简版：只对已加工的高分条目做；失败不影响摘要与静态页
+  let pointsMap = new Map();
+  if (enriched && POINTS_ENABLED) {
+    try {
+      const withScore = flat.map((it) => ({ ...it, en: enriched.get(it.link) }));
+      pointsMap = await buildAllPoints(withScore);
+    } catch (err) {
+      console.warn(`⚠ 原文精简版整体失败（${err.message}），本次不输出要点`);
+    }
+  }
+
   const aiBanner = aiNote ? `<p class="banner">ℹ ${aiNote}</p>` : '';
   const body = enriched
     ? renderAiPage(flat, enriched, { failedNote })
@@ -515,16 +642,25 @@ ${body}
   // 同步输出结构化数据，供 web 应用导入数据库（阶段 3 会自动化这一步）
   const dataForApp = {
     generatedAt: new Date().toISOString(),
-    items: okResults.flatMap((r) => r.items.map((it) => ({
-      link: it.link,
-      date: it.date ? it.date.toISOString() : null,
-      source: r.name,
-      title: it.title,
-      zh: enriched?.get(it.link)?.zh ?? null,
-      summary: enriched?.get(it.link)?.summary ?? null,
-      tag: enriched?.get(it.link)?.tag ?? null,
-      score: enriched?.get(it.link)?.score ?? null,
-    }))),
+    items: okResults.flatMap((r) => r.items.map((it) => {
+      const p = pointsMap.get(it.link);
+      return {
+        link: it.link,
+        date: it.date ? it.date.toISOString() : null,
+        source: r.name,
+        title: it.title,
+        zh: enriched?.get(it.link)?.zh ?? null,
+        summary: enriched?.get(it.link)?.summary ?? null,
+        tag: enriched?.get(it.link)?.tag ?? null,
+        score: enriched?.get(it.link)?.score ?? null,
+        // 原文精简版：points 为空串表示没生成（抓不到正文或未达分数门槛），
+        // 此时 pointsReason 说明原因，页面如实标注而不是假装成功
+        points: p?.points || null,
+        pointsReason: p?.points ? p.bodyReason : (p?.bodyReason ?? null),
+        bodyChars: p?.bodyChars ?? null,
+        bodyVia: p?.bodyVia ?? null,
+      };
+    })),
   };
   writeFileSync('docs/data.json', JSON.stringify(dataForApp, null, 2));
 
