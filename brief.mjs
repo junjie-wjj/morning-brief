@@ -489,10 +489,13 @@ const TAG_ORDER = ['模型发布', '福利资源', '产品动态', '研究进展
 function renderAiItem(it) {
   const when = isToday(it.date) ? '<span class="new">今天</span>' : escapeHtml(relDate(it.date));
   const meta = [escapeHtml(it.source), when].filter(Boolean).join(' · ');
+  // 原文精简版：默认折叠，点开就地读，不必跳转到原站
+  const pts = renderPoints(it);
   if (!it.en) {
     return `<li>
       <a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a>
       <span class="meta">${meta} · 未经 AI 加工</span>
+      ${pts}
     </li>`;
   }
   const orig = it.en.zh !== it.title ? ` · 原标题：${escapeHtml(it.title)}` : '';
@@ -501,11 +504,37 @@ function renderAiItem(it) {
     <span class="tag">${escapeHtml(it.en.tag)}</span>
     ${it.en.summary ? `<p class="summary">${escapeHtml(it.en.summary)}</p>` : ''}
     <span class="meta">${meta}${orig}</span>
+    ${pts}
   </li>`;
 }
 
-function renderAiPage(flat, enriched, { failedNote }) {
-  const items = flat.map((it) => ({ ...it, en: enriched.get(it.link) }));
+/** 渲染「原文精简版」折叠块；没有精简版就不渲染 */
+function renderPoints(it) {
+  if (!it.points) return '';
+  const why = it.pointsReason ? `<p class="ppts-note">${escapeHtml(it.pointsReason)}</p>` : '';
+  const via = it.bodyVia ? `正文 ${it.bodyChars} 字 · 来源 ${it.bodyVia}` : '';
+  const lines = it.points.split('\n').filter(Boolean)
+    .map((l) => `<p class="ppts-line">${escapeHtml(l)}</p>`).join('\n');
+  return `<details class="ppts">
+    <summary>📖 原文精简版（不跳转也能读）</summary>
+    ${lines}
+    ${why}
+    <p class="ppts-meta">${escapeHtml(via)}</p>
+  </details>`;
+}
+
+function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
+  const items = flat.map((it) => {
+    const p = pointsMap.get(it.link);
+    return {
+      ...it,
+      en: enriched.get(it.link),
+      points: p?.points || null,
+      pointsReason: p?.points ? p.bodyReason : (p?.bodyReason ?? null),
+      bodyChars: p?.bodyChars ?? 0,
+      bodyVia: p?.bodyVia ?? null,
+    };
+  });
   const kept = items.filter((it) => !it.en || it.en.score >= 3);
   const filtered = items.filter((it) => it.en && it.en.score <= 2);
 
@@ -521,6 +550,7 @@ function renderAiPage(flat, enriched, { failedNote }) {
     <span class="tag">${escapeHtml(it.en.tag)} · ${it.en.score} 分</span>
     <p class="summary">${escapeHtml(it.en.summary)}</p>
     <span class="meta">${[escapeHtml(it.source), isToday(it.date) ? '<span class="new">今天</span>' : escapeHtml(relDate(it.date))].filter(Boolean).join(' · ')}</span>
+    ${renderPoints(it)}
   </div>`;
 
   const mustHtml = must.length
@@ -584,7 +614,7 @@ async function main() {
 
   const aiBanner = aiNote ? `<p class="banner">ℹ ${aiNote}</p>` : '';
   const body = enriched
-    ? renderAiPage(flat, enriched, { failedNote })
+    ? renderAiPage(flat, enriched, { failedNote, pointsMap })
     : `${aiBanner}${results.map(renderSection).join('\n')}`;
   const sub = enriched
     ? `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${flat.length} 条 · 摘要与打分由 ${escapeHtml(activeModel)} 生成，仅供导读，以原文为准`
@@ -622,6 +652,12 @@ async function main() {
   .summary { margin: 6px 0 4px; font-size: .92rem; color: #374151; }
   details.filtered { margin: 24px 0; color: #6b7280; font-size: .88rem; }
   details.filtered summary { cursor: pointer; }
+  details.ppts { margin: 8px 0 2px; border: 1px solid #e5e7eb; border-radius: 8px;
+                 padding: 6px 10px; background: #fafafa; }
+  details.ppts summary { cursor: pointer; font-size: .85rem; color: #4338ca; }
+  .ppts-line { margin: 6px 0 0; font-size: .9rem; color: #374151; line-height: 1.65; }
+  .ppts-note { margin: 6px 0 0; font-size: .78rem; color: #b45309; }
+  .ppts-meta { margin: 6px 0 0; font-size: .75rem; color: #9ca3af; }
   footer { margin-top: 40px; color: #9ca3af; font-size: .8rem; border-top: 1px solid #e5e7eb; padding-top: 12px; }
 </style>
 </head>
@@ -675,4 +711,9 @@ ${body}
   console.log(`\n已生成 docs/index.html（共 ${total} 条）。用浏览器打开即可阅读。`);
 }
 
-main();
+// 只在「直接运行本文件」时执行主流程；被 import 时（例如测试）不自动跑。
+// 这样渲染函数可以被单独测试，而不是只能靠跑一遍完整管线来验证。
+import { pathToFileURL } from 'node:url';
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+
+export { renderPoints, renderAiItem, renderAiPage };
