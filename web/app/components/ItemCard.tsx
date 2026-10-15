@@ -21,12 +21,27 @@ export default function ItemCard({ item }: { item: ItemRow }) {
   const isRead = item.status === "read";
   const title = item.zh_title ?? item.title;
 
+  // 点开标题（跳转原文）时自动标记已读，不必再单独点一次「已读」按钮。
+  // 两条边界：
+  //   · 已是「稍后读」的不动 —— 那是用户明确收藏的条目，不该被一次点击改掉；
+  //   · 用 keepalive 发请求 —— 新标签页打开后本页可能转入后台，普通请求会被中断。
+  function markReadOnOpen() {
+    if (isRead || item.status === "later") return;
+    void fetch(`/api/items/${item.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "read" }),
+      keepalive: true,
+    }).then(() => startTransition(() => router.refresh()));
+  }
+
   return (
     <article className={`border-b border-zinc-100 py-3 ${pending ? "opacity-60" : ""}`}>
       <a
         href={item.link}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={markReadOnOpen}
         className={`text-[15px] font-medium hover:text-blue-600 ${isRead ? "text-zinc-400" : "text-zinc-900"}`}
       >
         {title}
