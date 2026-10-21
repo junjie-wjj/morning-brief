@@ -13,3 +13,6 @@ Thumbs.db
 
 # Local Netlify folder
 .netlify
+
+# 浏览器自动化工具的输出（快照等），不是项目源码
+.playwright-mcp/

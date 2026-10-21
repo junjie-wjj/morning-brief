@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { queryItems } from "@/lib/db";
+import { groupOrderFor } from "@/lib/grouping";
 import ItemCard from "./components/ItemCard";
 
 // 每次请求实时读数据库再渲染（经典 SSR 模式）
 export const dynamic = "force-dynamic";
-
-const TAG_ORDER = ["模型发布", "福利资源", "产品动态", "研究进展", "行业动态", "其他"];
 
 export default async function Home() {
   const items = await queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
@@ -13,7 +12,7 @@ export default async function Home() {
   // 今日必读：兴趣分 4 分以上的前 3 条
   const must = items.filter((it) => (it.score ?? 0) >= 4).slice(0, 3);
   const mustIds = new Set(must.map((it) => it.id));
-  const groups = TAG_ORDER
+  const groups = groupOrderFor(items)
     .map((tag) => ({ tag, list: items.filter((it) => !mustIds.has(it.id) && (it.tag ?? "其他") === tag) }))
     .filter((g) => g.list.length > 0);
 

@@ -486,6 +486,20 @@ async function fetchSource(source) {
 
 const TAG_ORDER = ['模型发布', '福利资源', '产品动态', '研究进展', '行业动态', '其他'];
 
+/** 分组顺序：已知分类按固定顺序在前，未知分类（模型偶尔自创标签）按条目数排在后面。
+ *  绝不能因为标签不在白名单就丢掉条目——宁可多一个小组，也不能静默消失。 */
+function groupOrderFor(items) {
+  const counts = new Map();
+  for (const it of items) {
+    const tag = it.en?.tag ?? '其他';
+    counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+  const unknown = [...counts.keys()]
+    .filter((t) => !TAG_ORDER.includes(t))
+    .sort((a, b) => (counts.get(b) - counts.get(a)) || a.localeCompare(b, 'zh'));
+  return [...TAG_ORDER, ...unknown];
+}
+
 function renderAiItem(it) {
   const when = isToday(it.date) ? '<span class="new">今天</span>' : escapeHtml(relDate(it.date));
   const meta = [escapeHtml(it.source), when].filter(Boolean).join(' · ');
@@ -557,7 +571,7 @@ function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
     ? `<section class="source"><h2>今日必读 <span class="count">按兴趣分排序</span></h2>${must.map(card).join('\n')}</section>`
     : '';
 
-  const groups = TAG_ORDER
+  const groups = groupOrderFor(kept)
     .map((tag) => ({ tag, list: kept.filter((it) => !mustLinks.has(it.link) && (it.en?.tag ?? '其他') === tag) }))
     .filter((g) => g.list.length)
     .map((g) => `<section class="source"><h2>${escapeHtml(g.tag)} <span class="count">${g.list.length} 条</span></h2>
@@ -716,4 +730,4 @@ ${body}
 import { pathToFileURL } from 'node:url';
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
-export { renderPoints, renderAiItem, renderAiPage };
+export { renderPoints, renderAiItem, renderAiPage, groupOrderFor };

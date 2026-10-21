@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 部署工具的本地构建产物（不是源码，不参与 lint）
+    ".netlify/**",
   ]),
 ]);
 
