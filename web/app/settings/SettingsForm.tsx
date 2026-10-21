@@ -42,8 +42,8 @@ export default function SettingsForm({
     setS({ ...s, [field]: set.size === all.length ? null : [...set] });
   }
 
-  async function save(next: Settings) {
-    const parsed = keywords.split(/[\n,，]/).map((k) => k.trim()).filter(Boolean);
+  async function save(next: Settings, keywordText: string = keywords) {
+    const parsed = keywordText.split(/[\n,，]/).map((k) => k.trim()).filter(Boolean);
     const payload = { ...next, blockedKeywords: parsed };
     const res = await fetch("/api/settings", {
       method: "POST",
@@ -174,7 +174,7 @@ export default function SettingsForm({
           保存设置
         </button>
         <button
-          onClick={() => { setS(DEFAULTS); setKeywords(""); save(DEFAULTS); }}
+          onClick={() => { setS(DEFAULTS); setKeywords(""); save(DEFAULTS, ""); }}
           className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
         >
           恢复默认
