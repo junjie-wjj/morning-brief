@@ -15,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="mx-auto flex max-w-2xl items-center gap-6 px-4 py-3">
             <Link href="/" className="font-semibold text-zinc-900">信息早餐</Link>
             <Link href="/later" className="text-sm text-zinc-500 hover:text-zinc-900">稍后读</Link>
+            <Link href="/archive" className="text-sm text-zinc-500 hover:text-zinc-900">历史</Link>
           </nav>
         </header>
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>

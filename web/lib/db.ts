@@ -22,6 +22,8 @@ export interface ItemRow {
   // 产品追踪：非空表示这是某个产品的第一手更新（新模型/新版本/官方公告），
   // 页面上按产品分组展示，不参与资讯的兴趣分过滤
   product: string | null;
+  // 期号（北京时间日期，如 2026-10-21）：首页只展示最新一期，历史在 /archive
+  issue: string | null;
 }
 
 let client: Client | null = null;
@@ -58,7 +60,8 @@ function initSchema(): Promise<unknown> {
       points_reason TEXT,
       body_chars INTEGER,
       body_via TEXT,
-      product TEXT
+      product TEXT,
+      issue TEXT
     )`);
 
     // 旧库补列：SQLite 的 ALTER TABLE ADD COLUMN 对已存在的列会报错，
@@ -72,6 +75,7 @@ function initSchema(): Promise<unknown> {
       ["body_chars", "INTEGER"],
       ["body_via", "TEXT"],
       ["product", "TEXT"],
+      ["issue", "TEXT"],
     ];
     for (const [name, type] of cols) {
       if (existing.has(name)) continue;

@@ -757,6 +757,9 @@ async function main() {
     timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric',
     hour: 'numeric', minute: 'numeric', hour12: false,
   });
+  // 期号：本次生成对应的北京时间日期（YYYY-MM-DD）。
+  // 应用用它只展示「最新一期」，避免首页被历史条目淹没；全部历史在「历史」页。
+  const issue = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
 
   // 官方博客（vendor 源）归入产品追踪，资讯层不再重复展示
   const vendorItems = new Map();
@@ -863,6 +866,7 @@ ${body}
   // 同步输出结构化数据，供 web 应用导入数据库（阶段 3 会自动化这一步）
   const dataForApp = {
     generatedAt: new Date().toISOString(),
+    issue,
     items: flat.map((it) => {
       const p = pointsMap.get(it.link);
       return {
@@ -871,6 +875,7 @@ ${body}
         source: it.source,
         title: it.title,
         product: it.product ?? null,
+        issue,
         zh: enriched?.get(it.link)?.zh ?? null,
         summary: enriched?.get(it.link)?.summary ?? null,
         tag: enriched?.get(it.link)?.tag ?? null,
