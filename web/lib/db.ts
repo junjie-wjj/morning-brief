@@ -2,6 +2,27 @@ import { createClient, type Client } from "@libsql/client";
 
 export type ItemStatus = "unread" | "read" | "later";
 
+// 筛选偏好：单用户应用，存在数据库里以便跨设备一致
+export interface Settings {
+  minScore: number;            // 兴趣分下限（产品条目不参与）
+  tags: string[] | null;       // null = 全部分类
+  sources: string[] | null;    // null = 全部来源
+  unreadOnly: boolean;         // 只显示未读
+  products: string[] | null;   // null = 全部产品
+  blockedKeywords: string[];   // 标题包含这些词就不显示
+  hideDownvoted: boolean;      // 隐藏点过「不感兴趣」的条目
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  minScore: 3,
+  tags: null,
+  sources: null,
+  unreadOnly: false,
+  products: null,
+  blockedKeywords: [],
+  hideDownvoted: true,
+};
+
 export interface ItemRow {
   id: number;
   link: string;
@@ -81,6 +102,17 @@ function initSchema(): Promise<unknown> {
       if (existing.has(name)) continue;
       await getDb().execute(`ALTER TABLE items ADD COLUMN ${name} ${type}`);
     }
+
+    // 筛选偏好（单行 JSON）与用户反馈（每条链接一条）
+    await getDb().execute(`CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )`);
+    await getDb().execute(`CREATE TABLE IF NOT EXISTS feedback (
+      link TEXT PRIMARY KEY,
+      verdict TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`);
   })();
   return ready;
 }
@@ -100,4 +132,91 @@ export async function queryItems(
 export async function execute(sql: string, args: (string | number | null)[]) {
   await initSchema();
   return getDb().execute({ sql, args });
+}
+
+// ---------- 筛选偏好与反馈 ----------
+
+export async function getSettings(): Promise<Settings> {
+  await initSchema();
+  const rs = await getDb().execute("SELECT value FROM settings WHERE key = 'filters'");
+  const raw = rs.rows[0]?.value;
+  if (typeof raw !== "string") return DEFAULT_SETTINGS;
+  try {
+    return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export async function saveSettings(settings: Settings): Promise<void> {
+  await initSchema();
+  await getDb().execute({
+    sql: `INSERT INTO settings (key, value) VALUES ('filters', ?)
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    args: [JSON.stringify(settings)],
+  });
+}
+
+export type Verdict = "up" | "down";
+
+export async function getFeedback(): Promise<Map<string, Verdict>> {
+  await initSchema();
+  const rs = await getDb().execute("SELECT link, verdict FROM feedback");
+  return new Map(rs.rows.map((r) => [String(r.link), String(r.verdict) as Verdict]));
+}
+
+export async function setFeedback(link: string, verdict: Verdict | null): Promise<void> {
+  await initSchema();
+  if (verdict === null) {
+    await getDb().execute({ sql: "DELETE FROM feedback WHERE link = ?", args: [link] });
+    return;
+  }
+  await getDb().execute({
+    sql: `INSERT INTO feedback (link, verdict, updated_at) VALUES (?, ?, ?)
+          ON CONFLICT(link) DO UPDATE SET verdict = excluded.verdict, updated_at = excluded.updated_at`,
+    args: [link, verdict, new Date().toISOString()],
+  });
+}
+
+/** 反馈画像：按分类/来源统计点赞与点踩，用于调整显示排序 */
+export interface PreferenceStats {
+  tagBias: Map<string, number>;
+  sourceBias: Map<string, number>;
+}
+
+export async function getPreferenceStats(): Promise<PreferenceStats> {
+  await initSchema();
+  const rs = await getDb().execute(`
+    SELECT f.verdict, i.tag, i.source, COUNT(*) AS c
+    FROM feedback f JOIN items i ON i.link = f.link
+    GROUP BY f.verdict, i.tag, i.source
+  `);
+  const tagBias = new Map<string, number>();
+  const sourceBias = new Map<string, number>();
+  const bump = (map: Map<string, number>, key: unknown, delta: number) => {
+    if (typeof key !== "string" || !key) return;
+    map.set(key, (map.get(key) ?? 0) + delta);
+  };
+  for (const r of rs.rows) {
+    const delta = r.verdict === "up" ? 0.4 : -0.8;
+    bump(tagBias, r.tag, delta);
+    bump(sourceBias, r.source, delta);
+  }
+  const clamp = (m: Map<string, number>) => {
+    for (const [k, v] of m) m.set(k, Math.max(-2, Math.min(2, v)));
+  };
+  clamp(tagBias);
+  clamp(sourceBias);
+  return { tagBias, sourceBias };
+}
+
+/** 设置页需要的可选项（分类、来源、产品） */
+export async function getFilterOptions(): Promise<{ tags: string[]; sources: string[]; products: string[] }> {
+  await initSchema();
+  const tags = await getDb().execute("SELECT DISTINCT tag FROM items WHERE tag IS NOT NULL ORDER BY tag");
+  const sources = await getDb().execute("SELECT DISTINCT source FROM items WHERE product IS NULL ORDER BY source");
+  const products = await getDb().execute("SELECT DISTINCT product FROM items WHERE product IS NOT NULL ORDER BY product");
+  const col = (rs: { rows: unknown[] }, key: string) =>
+    rs.rows.map((r) => String((r as Record<string, unknown>)[key])).filter(Boolean);
+  return { tags: col(tags, "tag"), sources: col(sources, "source"), products: col(products, "product") };
 }

@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import type { ItemRow } from "@/lib/db";
 
 // 客户端组件：按钮点击后发请求改数据库，然后让服务端重新渲染页面
-export default function ItemCard({ item }: { item: ItemRow }) {
+export default function ItemCard({
+  item,
+  verdict = null,
+}: {
+  item: ItemRow;
+  verdict?: "up" | "down" | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -15,6 +21,16 @@ export default function ItemCard({ item }: { item: ItemRow }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    });
+    startTransition(() => router.refresh());
+  }
+
+  // 👍/👎：再点一次同一按钮表示撤销；点👎后条目会从首页隐藏（可在设置里关闭）
+  async function sendFeedback(next: "up" | "down") {
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ link: item.link, verdict: verdict === next ? null : next }),
     });
     startTransition(() => router.refresh());
   }
@@ -103,6 +119,20 @@ export default function ItemCard({ item }: { item: ItemRow }) {
         </span>
         {/* 按钮区阻止冒泡，避免点「已读/稍后读」时顺带展开 */}
         <span className="flex shrink-0 gap-3 text-xs" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => sendFeedback("up")}
+            title="有用（多推这类）"
+            className={verdict === "up" ? "text-emerald-600" : "text-zinc-400 hover:text-emerald-600"}
+          >
+            👍
+          </button>
+          <button
+            onClick={() => sendFeedback("down")}
+            title="不感兴趣（少推这类）"
+            className={verdict === "down" ? "text-red-500" : "text-zinc-400 hover:text-red-500"}
+          >
+            👎
+          </button>
           {isRead ? (
             <button onClick={() => setStatus("unread")} className="text-zinc-400 hover:text-zinc-700">撤销已读</button>
           ) : (

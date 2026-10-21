@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { queryItems } from "@/lib/db";
+import { getFeedback, getPreferenceStats, getSettings, queryItems, type ItemRow } from "@/lib/db";
 import { groupOrderFor } from "@/lib/grouping";
+import { passesFilters, isBelowMinScore, rankScore, sortByRank, type FilterContext } from "@/lib/filters";
 import ItemCard from "./components/ItemCard";
 
 // 每次请求实时读数据库再渲染（经典 SSR 模式）
@@ -14,19 +15,25 @@ export default async function Home() {
     ? await queryItems("SELECT * FROM items WHERE issue = ? ORDER BY score DESC, date DESC, id DESC", latestIssue)
     : await queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
 
-  // 产品追踪与资讯分开：产品条目按产品分组、始终展示；资讯才按兴趣分过滤
-  const productItems = items.filter((it) => it.product);
-  const newsItems = items.filter((it) => !it.product);
+  // 筛选偏好 + 用户反馈（👍/👎 会影响排序与显示）
+  const [settings, feedback, stats] = await Promise.all([
+    getSettings(), getFeedback(), getPreferenceStats(),
+  ]);
+  const ctx: FilterContext = { settings, feedback, stats };
 
-  // 低分资讯（≤2）折叠到页面底部；未评分的条目不隐藏
-  const newsKept = newsItems.filter((it) => it.score === null || it.score >= 3);
-  const filtered = newsItems.filter((it) => it.score !== null && it.score <= 2);
+  // 产品追踪与资讯分开：产品条目只看「关注清单」，资讯走完整筛选
+  const productItems = items.filter((it) => it.product).filter((it) => passesFilters(it, ctx));
+  const newsItems = items.filter((it) => !it.product).filter((it) => passesFilters(it, ctx));
 
-  // 今日必读：资讯里兴趣分 4 分以上的前 3 条
-  const must = newsKept.filter((it) => (it.score ?? 0) >= 4).slice(0, 3);
+  // 低于兴趣分下限的资讯不丢弃，收进底部折叠区
+  const newsVisible = sortByRank(newsItems.filter((it) => !isBelowMinScore(it, settings)), ctx);
+  const lowScore = sortByRank(newsItems.filter((it) => isBelowMinScore(it, settings)), ctx);
+
+  // 今日必读：按个性化排序分取前 3（反馈与偏好会微调排序）
+  const must = newsVisible.filter((it) => rankScore(it, ctx) >= 4).slice(0, 3);
   const mustIds = new Set(must.map((it) => it.id));
-  const groups = groupOrderFor(newsKept)
-    .map((tag) => ({ tag, list: newsKept.filter((it) => !mustIds.has(it.id) && (it.tag ?? "其他") === tag) }))
+  const groups = groupOrderFor(newsVisible)
+    .map((tag) => ({ tag, list: newsVisible.filter((it) => !mustIds.has(it.id) && (it.tag ?? "其他") === tag) }))
     .filter((g) => g.list.length > 0);
 
   // 产品分组：按每个产品最新一条的时间倒序排列
@@ -39,11 +46,17 @@ export default async function Home() {
     })
     .sort((a, b) => ((b.list[0]?.date ?? "") > (a.list[0]?.date ?? "") ? 1 : -1));
 
+  const card = (it: ItemRow) => (
+    <ItemCard key={it.id} item={it} verdict={feedback.get(it.link) ?? null} />
+  );
+
   return (
     <div>
       <p className="text-xs text-zinc-400">
-        {latestIssue ? `最新一期 · ${latestIssue}` : "全部条目"} · 共 {items.length} 条 ·{" "}
+        {latestIssue ? `最新一期 · ${latestIssue}` : "全部条目"} · 共 {newsVisible.length + productItems.length} 条 ·{" "}
         <Link href="/archive" className="underline hover:text-zinc-600">查看历史</Link>
+        {" · "}
+        <Link href="/settings" className="underline hover:text-zinc-600">筛选设置</Link>
       </p>
 
       {items.length === 0 && (
@@ -55,7 +68,7 @@ export default async function Home() {
       {must.length > 0 && (
         <section className="mt-3">
           <h2 className="border-b border-zinc-200 pb-2 text-base font-semibold">今日必读</h2>
-          {must.map((it) => <ItemCard key={it.id} item={it} />)}
+          {must.map(card)}
         </section>
       )}
 
@@ -67,7 +80,7 @@ export default async function Home() {
           {productGroups.map((g) => (
             <div key={g.name} className="mt-4">
               <h3 className="border-l-2 border-indigo-400 pl-2 text-sm font-semibold text-zinc-700">{g.name}</h3>
-              {g.list.slice(0, 3).map((it) => <ItemCard key={it.id} item={it} />)}
+              {g.list.slice(0, 3).map(card)}
             </div>
           ))}
         </section>
@@ -78,14 +91,14 @@ export default async function Home() {
           <h2 className="border-b border-zinc-200 pb-2 text-base font-semibold">
             {g.tag} <span className="text-xs font-normal text-zinc-400">{g.list.length} 条</span>
           </h2>
-          {g.list.map((it) => <ItemCard key={it.id} item={it} />)}
+          {g.list.map(card)}
         </section>
       ))}
 
-      {filtered.length > 0 && (
+      {lowScore.length > 0 && (
         <details className="mt-6 text-sm text-zinc-500">
-          <summary className="cursor-pointer">已按兴趣分过滤 {filtered.length} 条低分条目（点击展开）</summary>
-          {filtered.map((it) => <ItemCard key={it.id} item={it} />)}
+          <summary className="cursor-pointer">已按兴趣分过滤 {lowScore.length} 条低分条目（点击展开）</summary>
+          {lowScore.map(card)}
         </details>
       )}
 
