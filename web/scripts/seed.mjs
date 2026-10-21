@@ -32,7 +32,8 @@ await db.execute(`CREATE TABLE IF NOT EXISTS items (
   summary TEXT,
   tag TEXT,
   score INTEGER,
-  status TEXT NOT NULL DEFAULT 'unread'
+  status TEXT NOT NULL DEFAULT 'unread',
+  product TEXT
 )`);
 
 // 迁移：给已存在的表补上「原文精简版」相关列。
@@ -43,6 +44,7 @@ const NEW_COLUMNS = [
   ['points_reason', 'TEXT'],     // 没生成时的原因，或分段覆盖情况
   ['body_chars', 'INTEGER'],     // 抓到的正文字数（0 表示没抓到）
   ['body_via', 'TEXT'],          // 正文来源：direct / reddit-rss / jina
+  ['product', 'TEXT'],           // 产品追踪：非空表示该产品的第一手更新
 ];
 const existing = new Set(
   (await db.execute('PRAGMA table_info(items)')).rows.map((r) => r.name),
@@ -59,8 +61,8 @@ for (const [name, type] of NEW_COLUMNS) {
 //      输出原始抓取，这几个字段全是 null。若照写就会把库里已有的中文摘要覆盖成空，
 //      即"一次限流抹掉全部历史摘要"。用 COALESCE 逐列保留：新值非 null 才覆盖。
 const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary, tag, score,
-    points, points_reason, body_chars, body_via)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    points, points_reason, body_chars, body_via, product)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(link) DO UPDATE SET
     date = excluded.date, source = excluded.source, title = excluded.title,
     zh_title = COALESCE(excluded.zh_title, items.zh_title),
@@ -70,7 +72,8 @@ const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary,
     points   = COALESCE(excluded.points,   items.points),
     points_reason = COALESCE(excluded.points_reason, items.points_reason),
     body_chars = COALESCE(excluded.body_chars, items.body_chars),
-    body_via   = COALESCE(excluded.body_via,   items.body_via)`;
+    body_via   = COALESCE(excluded.body_via,   items.body_via),
+    product    = COALESCE(excluded.product,    items.product)`;
 
 let n = 0;
 let withPoints = 0;
@@ -81,7 +84,8 @@ for (const it of data.items) {
     args: [it.link, it.date ?? data.generatedAt, it.source, it.title,
       it.zh, it.summary, it.tag, it.score,
       it.points ?? null, it.pointsReason ?? null,
-      it.bodyChars ?? null, it.bodyVia ?? null],
+      it.bodyChars ?? null, it.bodyVia ?? null,
+      it.product ?? null],
   });
   n++;
 }

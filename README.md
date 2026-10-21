@@ -22,21 +22,34 @@ npm run seed           # 导入本地数据库（开发用）
 npm run seed:cloud     # 导入云端 Turso（线上应用的数据源，需要 web/.env.cloud）
 ```
 
-## 信息源（12 个，以 AI 垂直为主）
+## 信息源（行业资讯层）
 
 | 栏目 | 来源 | 时效窗口 |
 |---|---|---|
-| OpenAI / DeepMind / Anthropic 官方 | 官方 RSS / 新闻页 | 7 天（官方博客本就一周数更） |
-| DeepSeek / 智谱 GLM | GitHub Release（API） | 7 天 |
 | 免费 LLM API 动态 | GitHub 仓库 mnfst/awesome-free-llm-apis（约 1 万星）的提交 | 最新 4 条 |
 | Hacker News · AI 热帖 | Algolia 官方接口，按 OpenAI/Claude/DeepSeek 等 8 个关键词过滤，5 分以上 | 48 小时 |
 | Hugging Face / r/LocalLLaMA / Simon Willison | 官方 RSS | 3-7 天 |
 | TechCrunch · AI 新闻 | 官方 RSS | 3 天 |
 | 量子位 · AI 资讯 | 官方 RSS | 48 小时 |
 
+## 产品追踪（12 个产品，第一手）
+
+DeepSeek、智谱 GLM、Kimi、Qwen、MiniMax、Claude、OpenAI / Codex、Gemini、OpenCode、Cursor、Qoder、WorkBuddy。
+每个产品挂 1-2 类来源，加删产品改 `brief.mjs` 顶部的 `PRODUCTS` 数组即可。
+
+| 来源类型 | 用途 | 说明 |
+|---|---|---|
+| Hugging Face 模型库 | 开源模型发布 | 公开 API，过滤 BF16/FP8/GGUF 等量化副本 |
+| GitHub Releases（Atom） | 工具版本更新 | `releases.atom`，无 API 限流；跳过 alpha/beta/rc |
+| GitHub 组织发布扫描 | 组织下各仓库的 Release | 走 GitHub API（每组织 1+4 次调用/日） |
+| 官方博客 | 闭源模型与公司新闻 | 复用 OpenAI / DeepMind / Anthropic 官方源 |
+| 关键词新闻 | 无官方渠道的产品（Cursor/Qoder/WorkBuddy） | Google 新闻 RSS（中文）+ Hacker News 搜索（英文社区） |
+
+页面上「产品追踪」按产品分组（最新更新时间排序，每产品最多 3 条），不参与资讯层的兴趣分过滤；同一链接只出现一次（产品追踪优先）。
+
 时效说明：页面按"今天 / 昨天 / N 天前"显示，今天的条目橙色高亮。官方大厂博客**本来就不是日更**——一周几篇是常态，"每天都有新内容"主要来自 HN·AI 热帖、量子位、TechCrunch 这几个日更栏目；官方栏目经常显示"近 7 天无更新"，这是现实，不是故障。
 
-已知边界：Hugging Face、Reddit、Simon Willison 在国内网络环境下本地抓不到（栏目会显示原因），部署到 GitHub Actions 后自动恢复；免费 token / 福利类消息的覆盖靠"免费 LLM API 动态"和 r/LocalLLaMA，公众号/X 上的瞬时福利仍抓不到。国内媒体的 RSS 质量参差（机器之心的 feed 已死，故未收录）。
+已知边界：Hugging Face、Reddit、Simon Willison、GitHub 在国内网络环境下本地抓不到（栏目会显示原因），部署到 GitHub Actions 后自动恢复；本地跑可用 `NODE_USE_ENV_PROXY=1` + 代理。免费 token / 福利类消息的覆盖靠"免费 LLM API 动态"和 r/LocalLLaMA，公众号/X 上的瞬时福利仍抓不到（X API 收费，不做）。国内媒体的 RSS 质量参差（机器之心的 feed 已死，故未收录）。
 
 ## 立即体验（本地）
 

@@ -9,12 +9,26 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const items = await queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
 
-  // 今日必读：兴趣分 4 分以上的前 3 条
-  const must = items.filter((it) => (it.score ?? 0) >= 4).slice(0, 3);
+  // 产品追踪与资讯分开：产品条目按产品分组、始终展示；资讯才按兴趣分过滤
+  const productItems = items.filter((it) => it.product);
+  const newsItems = items.filter((it) => !it.product);
+
+  // 今日必读：资讯里兴趣分 4 分以上的前 3 条
+  const must = newsItems.filter((it) => (it.score ?? 0) >= 4).slice(0, 3);
   const mustIds = new Set(must.map((it) => it.id));
-  const groups = groupOrderFor(items)
-    .map((tag) => ({ tag, list: items.filter((it) => !mustIds.has(it.id) && (it.tag ?? "其他") === tag) }))
+  const groups = groupOrderFor(newsItems)
+    .map((tag) => ({ tag, list: newsItems.filter((it) => !mustIds.has(it.id) && (it.tag ?? "其他") === tag) }))
     .filter((g) => g.list.length > 0);
+
+  // 产品分组：按每个产品最新一条的时间倒序排列
+  const productGroups = [...new Set(productItems.map((it) => it.product!))]
+    .map((name) => {
+      const list = productItems
+        .filter((it) => it.product === name)
+        .sort((a, b) => ((b.date ?? "") > (a.date ?? "") ? 1 : -1));
+      return { name, list };
+    })
+    .sort((a, b) => ((b.list[0]?.date ?? "") > (a.list[0]?.date ?? "") ? 1 : -1));
 
   return (
     <div>
@@ -30,6 +44,20 @@ export default async function Home() {
         <section className="mt-3">
           <h2 className="border-b border-zinc-200 pb-2 text-base font-semibold">今日必读</h2>
           {must.map((it) => <ItemCard key={it.id} item={it} />)}
+        </section>
+      )}
+
+      {productGroups.length > 0 && (
+        <section className="mt-6">
+          <h2 className="border-b border-zinc-200 pb-2 text-base font-semibold">
+            产品追踪 <span className="text-xs font-normal text-zinc-400">{productGroups.length} 个产品 · 第一手发布</span>
+          </h2>
+          {productGroups.map((g) => (
+            <div key={g.name} className="mt-4">
+              <h3 className="border-l-2 border-indigo-400 pl-2 text-sm font-semibold text-zinc-700">{g.name}</h3>
+              {g.list.slice(0, 3).map((it) => <ItemCard key={it.id} item={it} />)}
+            </div>
+          ))}
         </section>
       )}
 

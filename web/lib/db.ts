@@ -19,6 +19,9 @@ export interface ItemRow {
   points_reason: string | null;
   body_chars: number | null;
   body_via: string | null;
+  // 产品追踪：非空表示这是某个产品的第一手更新（新模型/新版本/官方公告），
+  // 页面上按产品分组展示，不参与资讯的兴趣分过滤
+  product: string | null;
 }
 
 let client: Client | null = null;
@@ -54,7 +57,8 @@ function initSchema(): Promise<unknown> {
       points TEXT,
       points_reason TEXT,
       body_chars INTEGER,
-      body_via TEXT
+      body_via TEXT,
+      product TEXT
     )`);
 
     // 旧库补列：SQLite 的 ALTER TABLE ADD COLUMN 对已存在的列会报错，
@@ -67,6 +71,7 @@ function initSchema(): Promise<unknown> {
       ["points_reason", "TEXT"],
       ["body_chars", "INTEGER"],
       ["body_via", "TEXT"],
+      ["product", "TEXT"],
     ];
     for (const [name, type] of cols) {
       if (existing.has(name)) continue;

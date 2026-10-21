@@ -3,11 +3,11 @@
 // 加/删信息源：编辑下面的 SOURCES 数组即可。
 
 const SOURCES = [
-  { name: 'OpenAI · 官方新闻',            type: 'rss',       url: 'https://openai.com/news/rss.xml',            max: 5, days: 7 },
-  { name: 'Google DeepMind · 官方博客',   type: 'rss',       url: 'https://deepmind.google/blog/rss.xml',       max: 5, days: 7 },
-  { name: 'Anthropic · 官方新闻',         type: 'anthropic', url: 'https://www.anthropic.com/news',             max: 5, days: 7 },
-  { name: 'DeepSeek · GitHub 发布',       type: 'gh',        org: 'deepseek-ai',                                max: 4 },
-  { name: '智谱 GLM · GitHub 发布',       type: 'gh',        org: 'zai-org',                                    max: 4 },
+  // 带 vendor 标记的源属于「官方博客」，条目会归入产品追踪（不再在资讯分类里重复展示）
+  { name: 'OpenAI · 官方新闻',            type: 'rss',       url: 'https://openai.com/news/rss.xml',            max: 5, days: 7, vendor: 'openai' },
+  { name: 'Google DeepMind · 官方博客',   type: 'rss',       url: 'https://deepmind.google/blog/rss.xml',       max: 5, days: 7, vendor: 'deepmind' },
+  { name: 'Anthropic · 官方新闻',         type: 'anthropic', url: 'https://www.anthropic.com/news',             max: 5, days: 7, vendor: 'anthropic' },
+  // DeepSeek / 智谱的 GitHub 发布已并入下面的 PRODUCTS（避免重复抓取）
   { name: '免费 LLM API 动态',            type: 'gh-commits', repo: 'mnfst/awesome-free-llm-apis',              max: 4 },
   { name: 'Hacker News · AI 热帖',        type: 'hn-ai',                                                        max: 10, days: 2 },
   { name: 'Hugging Face · 官方博客',      type: 'rss',       url: 'https://huggingface.co/blog/feed.xml',       max: 5, days: 7 },
@@ -16,6 +16,30 @@ const SOURCES = [
   { name: 'TechCrunch · AI 新闻',         type: 'rss',       url: 'https://techcrunch.com/category/artificial-intelligence/feed/', max: 5, days: 3 },
   { name: '量子位 · AI 资讯',             type: 'rss',       url: 'https://www.qbitai.com/feed',                max: 5, days: 2 },
 ];
+
+// ---------- 产品追踪：第一手来源 ----------
+// 每个产品可选配置：
+//   hf    Hugging Face 组织名（新模型，第一手）
+//   repos GitHub 仓库列表（Releases Atom，无 API 限流）
+//   org   GitHub 组织（扫描最近发布的仓库，走 API）
+//   blog  复用官方博客源（对应 SOURCES 里的 vendor 标记）
+//   news  关键词新闻搜索（Bing News RSS，覆盖无官方渠道的产品）
+// 想加/删产品：改这个数组即可（页面会自动按它排序）。
+const PRODUCTS = [
+  { name: 'DeepSeek',        hf: 'deepseek-ai', org: 'deepseek-ai' },
+  { name: '智谱 GLM',        hf: 'zai-org',     org: 'zai-org' },
+  { name: 'Kimi',            hf: 'moonshotai',  repos: ['MoonshotAI/kimi-code'] },
+  { name: 'Qwen',            hf: 'Qwen',        repos: ['QwenLM/qwen-code'] },
+  { name: 'MiniMax',         hf: 'MiniMaxAI',   org: 'MiniMax-AI' },
+  { name: 'Claude',          blog: 'anthropic', repos: ['anthropics/claude-code'] },
+  { name: 'OpenAI / Codex',  blog: 'openai',    repos: ['openai/codex'] },
+  { name: 'Gemini',          blog: 'deepmind',  repos: ['google-gemini/gemini-cli'] },
+  { name: 'OpenCode',        repos: ['anomalyco/opencode'] },
+  { name: 'Cursor',          news: { gnews: 'Cursor AI 编辑器', hn: 'Cursor', match: 'Cursor' } },
+  { name: 'Qoder',           news: { gnews: 'Qoder 阿里', hn: 'Qoder', match: 'Qoder' } },
+  { name: 'WorkBuddy',       news: { gnews: 'WorkBuddy AI', hn: 'WorkBuddy', match: 'WorkBuddy' } },
+];
+const PRODUCT_DAYS = 14;   // 产品更新只保留最近 N 天
 
 const WINDOW_DAYS = 7;          // 常规源只保留最近 N 天的条目
 const FETCH_TIMEOUT = 15_000;
@@ -53,6 +77,7 @@ import {
   splitIntoChunks, buildExtractPrompt, mergeExtracts, formatPoints,
   buildReducePrompt, applyReduced,
 } from './lib/extract.mjs';
+import { mapHfModels, mapReleaseItems, mapNewsItems, mapHnHits, dedupeByLink } from './lib/products.mjs';
 
 // 成本控制：只对高分条目做（正文比标题长几十倍，全量会让调用量涨十倍以上）。
 // 想全量就把 POINTS_MIN_SCORE 设为 1；完全关掉用 --skip-points 或 POINTS_ENABLED=0。
@@ -379,7 +404,7 @@ async function buildPoints(item) {
  */
 async function buildAllPoints(items) {
   const targets = items
-    .filter((it) => (it.en?.score ?? 0) >= POINTS_MIN_SCORE)
+    .filter((it) => !it.product && (it.en?.score ?? 0) >= POINTS_MIN_SCORE)
     .slice(0, POINTS_MAX_ITEMS);
   if (!targets.length) return new Map();
 
@@ -410,11 +435,11 @@ async function buildAllPoints(items) {
 }
 
 // GitHub 组织的 Release 动态：先列最近活跃的仓库，再逐个查 Release。
-// 官方公开 API，无鉴权限流 60 次/小时；每天每组织 1 + 6 次调用，手动重跑也不会触发限流。
+// 官方公开 API，无鉴权限流 60 次/小时；每组织 1 + 4 次调用，手动重跑也不会触发限流。
 async function fetchGitHubReleases(source) {
   const headers = { Accept: 'application/vnd.github+json' };
   const repos = JSON.parse(await fetchText(
-    `https://api.github.com/orgs/${source.org}/repos?sort=pushed&per_page=6`, headers,
+    `https://api.github.com/orgs/${source.org}/repos?sort=pushed&per_page=4`, headers,
   )).map((r) => r.full_name);
 
   const releases = (await Promise.allSettled(
@@ -423,7 +448,7 @@ async function fetchGitHubReleases(source) {
   )).flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
   return releases
-    .filter((rel) => rel.published_at && withinDays(new Date(rel.published_at), WINDOW_DAYS))
+    .filter((rel) => rel.published_at && withinDays(new Date(rel.published_at), source.days ?? WINDOW_DAYS))
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
     .slice(0, source.max)
     .map((rel) => {
@@ -435,6 +460,102 @@ async function fetchGitHubReleases(source) {
         meta: rel.prerelease ? '预发布' : '',
       };
     });
+}
+
+// ---------- 产品追踪：抓取器 ----------
+// GitHub Releases 用 Atom 订阅（无 API 限流）；HF 模型库走公开 API；
+// 组织级发布沿用上面的 GitHub API；无官方渠道的产品用关键词新闻搜索补位。
+
+async function fetchRepoReleases(product, repo) {
+  const xml = await fetchText(`https://github.com/${repo}/releases.atom`);
+  return mapReleaseItems(parseFeed(xml), {
+    product, label: repo.split('/')[1], days: PRODUCT_DAYS, max: 2,
+  });
+}
+
+async function fetchHfNewModels(product, org) {
+  const models = JSON.parse(await fetchText(
+    `https://huggingface.co/api/models?author=${encodeURIComponent(org)}&sort=lastModified&limit=20`,
+  ));
+  return mapHfModels(models, { product, days: PRODUCT_DAYS, max: 2 });
+}
+
+async function fetchKeywordNews(product, news) {
+  // 没有官方渠道的产品：Google 新闻（中文媒体覆盖）+ Hacker News（英文社区讨论）双通道
+  const cfg = typeof news === 'string' ? { gnews: news, hn: news } : news;
+  const match = cfg.match ?? cfg.hn ?? product;
+  const out = [];
+
+  if (cfg.gnews) {
+    try {
+      const xml = await fetchText(
+        `https://news.google.com/rss/search?q=${encodeURIComponent(cfg.gnews)}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`,
+      );
+      out.push(...mapNewsItems(parseFeed(xml), { product, keyword: match, days: 14, max: 2 }));
+    } catch (err) {
+      console.log(`  ⚠ 产品追踪：${product} 的 Google 新闻搜索失败（${err.message}）`);
+    }
+  }
+
+  if (cfg.hn) {
+    try {
+      const since = Math.floor(Date.now() / 1000) - 14 * 86_400;
+      const json = JSON.parse(await fetchText(
+        `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(cfg.hn)}` +
+        `&tags=story&numericFilters=created_at_i%3E${since}&hitsPerPage=20`,
+      ));
+      out.push(...mapHnHits(json.hits, { product, keyword: cfg.hn, days: 14, max: 2 }));
+    } catch (err) {
+      console.log(`  ⚠ 产品追踪：${product} 的 HN 搜索失败（${err.message}）`);
+    }
+  }
+
+  return dedupeByLink(out).slice(0, 2);
+}
+
+/** 逐个产品抓取第一手更新；单个来源失败只影响该产品，不阻塞其他产品 */
+async function fetchProducts(vendorItems) {
+  const out = [];
+  for (const p of PRODUCTS) {
+    const items = [];
+
+    if (p.blog) {
+      items.push(...(vendorItems.get(p.blog) ?? []).map((it) => ({ ...it, product: p.name })));
+    }
+    for (const repo of p.repos ?? []) {
+      try {
+        items.push(...await fetchRepoReleases(p.name, repo));
+      } catch (err) {
+        console.log(`  ⚠ 产品追踪：${p.name} 的 GitHub 发布抓取失败（${err.message}）`);
+      }
+    }
+    if (p.org) {
+      try {
+        const rels = await fetchGitHubReleases({ org: p.org, max: 2, days: PRODUCT_DAYS });
+        items.push(...rels.map((r) => ({ ...r, product: p.name, source: `${p.name} · GitHub 发布` })));
+      } catch (err) {
+        console.log(`  ⚠ 产品追踪：${p.name} 的组织发布抓取失败（${err.message}）`);
+      }
+    }
+    if (p.hf) {
+      try {
+        items.push(...await fetchHfNewModels(p.name, p.hf));
+      } catch (err) {
+        console.log(`  ⚠ 产品追踪：${p.name} 的 HF 模型抓取失败（${err.message}）`);
+      }
+    }
+    if (p.news) {
+      try {
+        items.push(...await fetchKeywordNews(p.name, p.news));
+      } catch (err) {
+        console.log(`  ⚠ 产品追踪：${p.name} 的新闻搜索失败（${err.message}）`);
+      }
+    }
+
+    out.push(...dedupeByLink(items).slice(0, 4));
+  }
+  console.log(`产品追踪：${PRODUCTS.length} 个产品，共 ${out.length} 条更新`);
+  return out;
 }
 
 // ---------- 生成页面 ----------
@@ -537,6 +658,34 @@ function renderPoints(it) {
   </details>`;
 }
 
+// 产品追踪：按产品分组展示第一手更新（新模型 / 新版本 / 官方公告）。
+// 产品条目始终展示，不参与兴趣分过滤——它们是用户明确要追的信号。
+function renderProductSection(items) {
+  const byProduct = new Map();
+  for (const it of items) {
+    if (!it.product) continue;
+    if (!byProduct.has(it.product)) byProduct.set(it.product, []);
+    byProduct.get(it.product).push(it);
+  }
+  if (!byProduct.size) return '';
+
+  // 已知产品按配置顺序；配置外的新产品追加在后面（不丢弃）
+  const order = PRODUCTS.map((p) => p.name).filter((n) => byProduct.has(n));
+  for (const name of byProduct.keys()) if (!order.includes(name)) order.push(name);
+
+  const blocks = order.map((name) => {
+    const list = byProduct.get(name)
+      .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
+      .slice(0, 3);
+    return `<div class="product">
+      <h3>${escapeHtml(name)}</h3>
+      <ul>${list.map(renderAiItem).join('\n')}</ul>
+    </div>`;
+  }).join('\n');
+
+  return `<section class="source products"><h2>产品追踪 <span class="count">${byProduct.size} 个产品 · 第一手发布</span></h2>${blocks}</section>`;
+}
+
 function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
   const items = flat.map((it) => {
     const p = pointsMap.get(it.link);
@@ -549,10 +698,14 @@ function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
       bodyVia: p?.bodyVia ?? null,
     };
   });
-  const kept = items.filter((it) => !it.en || it.en.score >= 3);
-  const filtered = items.filter((it) => it.en && it.en.score <= 2);
+  // 产品条目始终保留；资讯条目按兴趣分过滤低分
+  const kept = items.filter((it) => it.product || !it.en || it.en.score >= 3);
+  const filtered = items.filter((it) => !it.product && it.en && it.en.score <= 2);
 
-  const must = kept.filter((it) => it.en)
+  const productItems = kept.filter((it) => it.product);
+  const newsItems = kept.filter((it) => !it.product);
+
+  const must = newsItems.filter((it) => it.en)
     .sort((a, b) => (b.en.score - a.en.score)
       || ((isToday(b.date) ? 1 : 0) - (isToday(a.date) ? 1 : 0))
       || ((b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0)))
@@ -571,12 +724,14 @@ function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
     ? `<section class="source"><h2>今日必读 <span class="count">按兴趣分排序</span></h2>${must.map(card).join('\n')}</section>`
     : '';
 
-  const groups = groupOrderFor(kept)
-    .map((tag) => ({ tag, list: kept.filter((it) => !mustLinks.has(it.link) && (it.en?.tag ?? '其他') === tag) }))
+  const groups = groupOrderFor(newsItems)
+    .map((tag) => ({ tag, list: newsItems.filter((it) => !mustLinks.has(it.link) && (it.en?.tag ?? '其他') === tag) }))
     .filter((g) => g.list.length)
     .map((g) => `<section class="source"><h2>${escapeHtml(g.tag)} <span class="count">${g.list.length} 条</span></h2>
       <ul>${g.list.map(renderAiItem).join('\n')}</ul></section>`)
     .join('\n');
+
+  const productsHtml = renderProductSection(productItems);
 
   const filteredHtml = filtered.length
     ? `<details class="filtered"><summary>已按兴趣分过滤 ${filtered.length} 条低分条目（点击展开）</summary>
@@ -585,6 +740,7 @@ function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
 
   return `${failedNote}
 ${mustHtml}
+${productsHtml}
 ${groups}
 ${filteredHtml}`;
 }
@@ -592,7 +748,6 @@ ${filteredHtml}`;
 async function main() {
   const results = await Promise.all(SOURCES.map(fetchSource));
   const okResults = results.filter((r) => r.status === 'ok');
-  const total = okResults.reduce((n, r) => n + r.items.length, 0);
   const failedCount = results.length - okResults.length;
   const failedNote = failedCount
     ? `<p class="banner">⚠ ${failedCount} 个源本次抓取失败（见各栏目提示），其余内容正常。</p>`
@@ -603,7 +758,20 @@ async function main() {
     hour: 'numeric', minute: 'numeric', hour12: false,
   });
 
-  const flat = okResults.flatMap((r) => r.items.map((it) => ({ ...it, source: r.name })));
+  // 官方博客（vendor 源）归入产品追踪，资讯层不再重复展示
+  const vendorItems = new Map();
+  for (const r of okResults) {
+    if (!r.vendor) continue;
+    vendorItems.set(r.vendor, r.items.map((it) => ({ ...it, source: r.name })));
+  }
+  const productItems = await fetchProducts(vendorItems);
+  const newsFlat = okResults
+    .filter((r) => !r.vendor)
+    .flatMap((r) => r.items.map((it) => ({ ...it, source: r.name })));
+  // 产品追踪优先，其次资讯；同链接只保留一条
+  const flat = dedupeByLink([...productItems, ...newsFlat]);
+  const total = flat.length;
+
   let enriched = null;
   let aiNote = '';
   if (!LLM_API_KEY) aiNote = '未配置 LLM_API_KEY，本次展示原始抓取（配置方法见 README）';
@@ -615,7 +783,7 @@ async function main() {
     }
   }
 
-  // 原文精简版：只对已加工的高分条目做；失败不影响摘要与静态页
+  // 原文精简版：只对已加工的高分资讯做（产品更新没有正文，跳过）；失败不影响摘要与静态页
   let pointsMap = new Map();
   if (enriched && POINTS_ENABLED) {
     try {
@@ -629,7 +797,7 @@ async function main() {
   const aiBanner = aiNote ? `<p class="banner">ℹ ${aiNote}</p>` : '';
   const body = enriched
     ? renderAiPage(flat, enriched, { failedNote, pointsMap })
-    : `${aiBanner}${results.map(renderSection).join('\n')}`;
+    : `${aiBanner}${renderProductSection(flat.filter((it) => it.product))}${okResults.filter((r) => !r.vendor).map(renderSection).join('\n')}`;
   const sub = enriched
     ? `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${flat.length} 条 · 摘要与打分由 ${escapeHtml(activeModel)} 生成，仅供导读，以原文为准`
     : `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${total} 条 · 原始抓取（无 AI 加工）`;
@@ -664,6 +832,9 @@ async function main() {
   .tag { display: inline-block; background: #eef2ff; color: #4338ca; font-size: .75rem;
          padding: 1px 8px; border-radius: 99px; margin-left: 6px; vertical-align: middle; }
   .summary { margin: 6px 0 4px; font-size: .92rem; color: #374151; }
+  .products h3 { margin: 16px 0 4px; font-size: .95rem; color: #374151;
+                 border-left: 3px solid #6366f1; padding-left: 8px; }
+  .products ul { margin-top: 4px; }
   details.filtered { margin: 24px 0; color: #6b7280; font-size: .88rem; }
   details.filtered summary { cursor: pointer; }
   details.ppts { margin: 8px 0 2px; border: 1px solid #e5e7eb; border-radius: 8px;
@@ -692,13 +863,14 @@ ${body}
   // 同步输出结构化数据，供 web 应用导入数据库（阶段 3 会自动化这一步）
   const dataForApp = {
     generatedAt: new Date().toISOString(),
-    items: okResults.flatMap((r) => r.items.map((it) => {
+    items: flat.map((it) => {
       const p = pointsMap.get(it.link);
       return {
         link: it.link,
         date: it.date ? it.date.toISOString() : null,
-        source: r.name,
+        source: it.source,
         title: it.title,
+        product: it.product ?? null,
         zh: enriched?.get(it.link)?.zh ?? null,
         summary: enriched?.get(it.link)?.summary ?? null,
         tag: enriched?.get(it.link)?.tag ?? null,
@@ -710,7 +882,7 @@ ${body}
         bodyChars: p?.bodyChars ?? null,
         bodyVia: p?.bodyVia ?? null,
       };
-    })),
+    }),
   };
   writeFileSync('docs/data.json', JSON.stringify(dataForApp, null, 2));
 

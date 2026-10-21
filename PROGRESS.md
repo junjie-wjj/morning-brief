@@ -277,3 +277,36 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 - 验证：`node --test` 50/50 通过；`npx tsc --noEmit` 通过；`npm run build` 通过；
   本地实测插入「开源项目 / 3 分」条目后页面出现独立分组且条目可见（测试数据已清理）。
 - **P2 仍待处理**：GitHub 推送凭证过期，需人工执行一次 `git push origin main` 完成弹窗登录。
+
+## 产品追踪（2026-10-21 新增）
+
+目标：从「只看资讯」升级为「同时盯产品」——每家产品的模型发布、工具版本、官方公告集中展示。
+
+### 实现
+
+- **配置**：`brief.mjs` 顶部 `PRODUCTS` 数组，每项可挂 hf / repos / org / blog / news 五类来源，加删产品改一行即可。
+- **12 个产品**：DeepSeek、智谱 GLM、Kimi、Qwen、MiniMax、Claude、OpenAI / Codex、Gemini、OpenCode、Cursor、Qoder、WorkBuddy。
+- **来源分工**：
+  - Hugging Face 模型库 API（新模型，第一手；过滤 BF16/FP8/GGUF 等量化副本）
+  - GitHub Releases **Atom**（`releases.atom`，无 API 限流；跳过 alpha/beta/rc）
+  - GitHub 组织发布扫描（沿用 API，每组织 1+4 次调用）
+  - 官方博客（复用现有 vendor 源：OpenAI / DeepMind / Anthropic）
+  - 关键词新闻：Google 新闻 RSS（中文媒体）+ Hacker News 搜索（英文社区），按标题关键词过滤无关结果
+- **数据**：`items` 表新增 `product` 列（本地库与云端自动迁移）；`docs/data.json` 同步输出。
+- **页面**：首页新增「产品追踪」区块，按产品分组（按最新更新时间排序，每产品最多 3 条）；产品条目不参与资讯层的兴趣分过滤。
+- **去重**：同一链接只保留一条，优先级 产品追踪 > 资讯。
+- **成本**：每次运行约 15 次 GitHub API 调用（匿名额度 60/小时）+ 免费 RSS/HF 接口，仍为零成本。
+
+### 验证（2026-10-21）
+
+- 新增 `lib/products.mjs` 纯逻辑模块 + `lib/products.test.mjs`；**测试 50 → 60 条全部通过**。
+- 实跑管线（代理 + 跳过 LLM）：63 条数据、产品更新 27 条，**12 个产品全部抓到**。
+- Cursor 无关新闻已被标题关键词过滤（只保留 2 条真正提到 Cursor 的 HN 讨论）。
+- 本地库迁移成功，应用首页渲染出 12 个产品分组。
+- `npx tsc --noEmit`、`npm run build`、`npm run lint` 全部通过。
+
+### 已知边界
+
+- 新闻类来源（Google News / HN）是公开但非官方文档化接口，稳定性中等；HF、GitHub Atom、官方 RSS 很稳定。
+- Cursor 没有 RSS/changelog API，只能靠 HN 讨论与新闻，更新可能稀疏。
+- 国内网络直连 HF/GitHub/Bing 会失败：本地跑需 `NODE_USE_ENV_PROXY=1` + 代理；GitHub Actions 上无此问题。
