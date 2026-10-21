@@ -259,3 +259,9 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 **新增文件**：`lib/article.mjs`（抓正文）、`lib/extract.mjs`（分段/抽取/合并/压缩）、
 `lib/*.test.mjs`（4 个测试文件，共 48 个用例）、`web/scripts/backfill.mjs`（回填）。
 **新增数据库列**：`points`、`points_reason`、`body_chars`、`body_via`（新旧库均自动迁移）。
+
+## 协作约定（2026-10-21 确认）
+
+- **提交方式：保持自动提交**——AI 每完成一块可交付的改动，即按惯例提交并推送到 GitHub（提交信息用中文、描述准确），无需逐次征求确认。
+- 密钥与本地数据（`.env*`、`web/data/` 等）永不提交；提交前保证构建/测试通过。
+- 若某次改动不希望入库，提前说一句"这次先不提交"即可。
