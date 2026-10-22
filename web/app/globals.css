@@ -1,5 +1,81 @@
 @import "tailwindcss";
 
-body {
-  font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
+@theme {
+  --color-paper: #f7f4ee;
+  --color-paper-deep: #efe9df;
+  --color-surface: #ffffff;
+  --color-ink: #1c1917;
+  --color-ink-soft: #44403c;
+  --color-muted: #78716c;
+  --color-line: #e7e1d6;
+  --color-amber-soft: #fdf3d8;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", "SimSun", serif;
+
+  --shadow-soft: 0 1px 2px rgb(28 25 23 / 0.04), 0 12px 32px -20px rgb(28 25 23 / 0.25);
+  --shadow-lift: 0 2px 4px rgb(28 25 23 / 0.05), 0 18px 40px -24px rgb(28 25 23 / 0.35);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* 长英文标题 / URL 在窄容器里要能断行，避免把网格撑出横向滚动 */
+  a,
+  p,
+  span {
+    overflow-wrap: anywhere;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    background-image:
+      radial-gradient(56rem 30rem at 50% -12%, rgb(251 191 36 / 0.12), transparent 62%),
+      radial-gradient(40rem 24rem at 100% 0%, rgb(99 102 241 / 0.06), transparent 60%);
+    background-attachment: fixed;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background: #fde68a;
+    color: #1c1917;
+  }
+
+  :focus-visible {
+    outline: 2px solid #b45309;
+    outline-offset: 2px;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-rise {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

@@ -3,16 +3,99 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ItemRow } from "@/lib/db";
+import {
+  IconBookmark,
+  IconCheck,
+  IconChevronDown,
+  IconExternal,
+  IconSparkles,
+  IconThumbsDown,
+  IconThumbsUp,
+} from "./Icons";
+
+type Variant = "default" | "featured" | "compact";
+
+const TAG_TONES: Record<string, string> = {
+  模型发布: "border-sky-100 bg-sky-50 text-sky-700",
+  福利资源: "border-emerald-100 bg-emerald-50 text-emerald-700",
+  产品动态: "border-violet-100 bg-violet-50 text-violet-700",
+  研究进展: "border-cyan-100 bg-cyan-50 text-cyan-700",
+  行业动态: "border-amber-100 bg-amber-50 text-amber-800",
+  其他: "border-stone-200 bg-stone-100 text-stone-600",
+};
+
+function tagTone(tag: string) {
+  return TAG_TONES[tag] ?? "border-stone-200 bg-stone-100 text-stone-600";
+}
+
+function formatDate(iso: string) {
+  const m = iso.match(/^\d{4}-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}.${m[2]}` : "";
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const tone = score >= 5
+    ? "border-amber-300 bg-amber-50 text-amber-800"
+    : score >= 4
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : score >= 3
+        ? "border-line bg-paper text-stone-600"
+        : "border-line bg-white text-muted";
+  return (
+    <span
+      title={`兴趣分 ${score}/5`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium ${tone}`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {score} 分
+    </span>
+  );
+}
+
+function ActionIcon({
+  label,
+  active,
+  activeClass,
+  onClick,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  activeClass: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+      onClick={onClick}
+      className={`grid h-10 w-10 place-items-center rounded-full border transition-colors sm:h-8 sm:w-8 ${
+        active
+          ? activeClass
+          : "border-transparent text-stone-400 hover:bg-paper-deep hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 // 客户端组件：按钮点击后发请求改数据库，然后让服务端重新渲染页面
 export default function ItemCard({
   item,
   verdict = null,
   related = [],
+  variant = "default",
+  rank,
 }: {
   item: ItemRow;
   verdict?: "up" | "down" | null;
   related?: { title: string; link: string; source: string }[];
+  variant?: Variant;
+  rank?: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -38,15 +121,18 @@ export default function ItemCard({
   }
 
   const isRead = item.status === "read";
+  const isLater = item.status === "later";
   const title = item.zh_title ?? item.title;
   const hasPoints = Boolean(item.points);
+  const isFeatured = variant === "featured";
+  const isCompact = variant === "compact";
 
   // 点开标题（跳转原文）时自动标记已读，不必再单独点一次「已读」按钮。
   // 两条边界：
   //   · 已是「稍后读」的不动 —— 那是用户明确收藏的条目，不该被一次点击改掉；
   //   · 用 keepalive 发请求 —— 新标签页打开后本页可能转入后台，普通请求会被中断。
   function markReadOnOpen() {
-    if (isRead || item.status === "later") return;
+    if (isRead || isLater) return;
     void fetch(`/api/items/${item.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,108 +149,197 @@ export default function ItemCard({
     if (!open) markReadOnOpen();
   }
 
+  const articleClass = isFeatured
+    ? "group flex h-full min-w-0 flex-col rounded-2xl border border-amber-200/70 bg-gradient-to-b from-amber-50/70 via-white to-white shadow-soft transition-shadow duration-200 hover:shadow-lift"
+    : isCompact
+      ? "group min-w-0 py-3.5 transition-colors"
+      : "group min-w-0 rounded-2xl border border-line bg-white shadow-soft transition-shadow duration-200 hover:shadow-lift";
+
   return (
-    // 整张卡片的空白处都可点：点开就地读精简版，不用打开原网页。
-    // 标题（跳原文）与按钮区各自阻止冒泡，行为互不干扰。
     <article
       onClick={togglePoints}
-      className={`border-b border-zinc-100 py-3 ${pending ? "opacity-60" : ""} ${
-        hasPoints ? "cursor-pointer hover:bg-zinc-50/60" : ""
+      className={`${articleClass} ${pending ? "opacity-60" : ""} ${
+        hasPoints ? "cursor-pointer" : ""
       }`}
       title={hasPoints ? (open ? "点空白处收起精简版" : "点空白处读精简版，不用打开原网页") : undefined}
     >
-      {/* 标题是独立跳转区；点它开原文，不触发展开 */}
-      <a
-        href={item.link}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => { e.stopPropagation(); markReadOnOpen(); }}
-        className={`text-[15px] font-medium hover:text-blue-600 ${isRead ? "text-zinc-400" : "text-zinc-900"}`}
-      >
-        {title}
-      </a>
+      <div className={isCompact ? "min-w-0" : isFeatured ? "flex min-w-0 flex-1 flex-col p-5" : "min-w-0 p-4 sm:p-5"}>
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {isFeatured && rank ? (
+                <span className="font-serif text-2xl font-semibold leading-none text-amber-600">
+                  {String(rank).padStart(2, "0")}
+                </span>
+              ) : null}
+              {item.tag ? (
+                <span className={`rounded-full border px-2 py-0.5 text-[10.5px] font-medium ${tagTone(item.tag)}`}>
+                  {item.tag}
+                </span>
+              ) : null}
+              {isRead ? (
+                <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10.5px] text-stone-500">已读</span>
+              ) : null}
+              {isLater ? (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] text-amber-700">稍后读</span>
+              ) : null}
+            </div>
 
-      {item.tag && (
-        <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-xs text-indigo-600">
-          {item.tag}
-        </span>
-      )}
+            {/* 标题是独立跳转区；点它开原文，不触发展开 */}
+            <a
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => { e.stopPropagation(); markReadOnOpen(); }}
+              className={`block font-semibold tracking-tight transition-colors ${
+                isFeatured
+                  ? "mt-2 text-[17px] leading-snug hover:text-amber-800 sm:text-lg"
+                  : isCompact
+                    ? "mt-1.5 text-[14.5px] leading-6 hover:text-amber-800"
+                    : "mt-2 text-[15.5px] leading-6 hover:text-amber-800"
+              } ${isRead ? "text-stone-400 hover:text-stone-600" : "text-ink"}`}
+            >
+              {title}
+            </a>
 
-      {item.summary && <p className="mt-1 text-sm leading-6 text-zinc-600">{item.summary}</p>}
-
-      {related.length > 0 && (
-        <p className="mt-1 text-xs text-zinc-500" onClick={(e) => e.stopPropagation()}>
-          相关报道：
-          {related.map((r, i) => (
-            <span key={r.link}>
-              {i > 0 && "、"}
-              <a
-                href={r.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-indigo-600"
+            {item.summary ? (
+              <p
+                className={
+                  isCompact
+                    ? "mt-1 line-clamp-2 text-[12.5px] leading-5 text-muted"
+                    : `mt-1.5 text-[13.5px] leading-6 text-ink-soft ${isFeatured ? "sm:text-sm" : ""}`
+                }
               >
-                {r.source}
-              </a>
-            </span>
-          ))}
-        </p>
-      )}
+                {item.summary}
+              </p>
+            ) : null}
 
-      {hasPoints && (
-        <p className="mt-1 text-xs text-indigo-500">
-          {open ? "▾ 收起精简版" : "▸ 原文精简版（不打开网页也能读）"}
-        </p>
-      )}
+            {related.length > 0 ? (
+              <div
+                className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="font-medium text-stone-500">相关报道</span>
+                {related.map((r, i) => (
+                  <span key={r.link} className="inline-flex items-center gap-1.5">
+                    {i > 0 ? <span className="text-line">·</span> : null}
+                    <a
+                      href={r.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 text-amber-700 underline decoration-amber-200 underline-offset-2 hover:decoration-amber-500"
+                    >
+                      {r.source}
+                      <IconExternal className="h-3 w-3" />
+                    </a>
+                  </span>
+                ))}
+              </div>
+            ) : null}
 
-      {open && item.points && (
-        <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-          {item.points.split("\n").filter(Boolean).map((line, i) => (
-            <p key={i} className="mt-1 text-[13px] leading-6 text-zinc-700 first:mt-0">
-              {line}
-            </p>
-          ))}
-          <p className="mt-2 text-[11px] text-zinc-400">
-            {item.body_chars ? `已处理全文 ${item.body_chars} 字` : ""}
-            {item.body_via ? ` · 来源 ${item.body_via}` : ""}
-            {item.points_reason ? ` · ${item.points_reason}` : ""}
-          </p>
+            {hasPoints ? (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={(e) => { e.stopPropagation(); togglePoints(); }}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full py-1 text-[11px] font-medium text-amber-700 transition-colors hover:text-amber-900"
+              >
+                <IconSparkles className="h-3.5 w-3.5" />
+                {open ? "收起精简版" : "原文精简版 · 不打开网页也能读"}
+                <IconChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+              </button>
+            ) : null}
+
+            {open && item.points ? (
+              <div className="mt-2 rounded-xl border border-amber-200/70 bg-amber-50/60 px-3.5 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700">
+                  原文精简
+                </p>
+                {item.points.split("\n").filter(Boolean).map((line, i) => (
+                  <p key={i} className="mt-2 text-[13px] leading-6 text-ink-soft first:mt-1.5">
+                    {line}
+                  </p>
+                ))}
+                <p className="mt-2.5 text-[10.5px] text-muted">
+                  {item.body_chars ? `已处理全文 ${item.body_chars} 字` : ""}
+                  {item.body_via ? ` · 来源 ${item.body_via}` : ""}
+                  {item.points_reason ? ` · ${item.points_reason}` : ""}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          {item.score !== null && item.score !== undefined ? <ScoreBadge score={item.score} /> : null}
         </div>
-      )}
+      </div>
 
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="truncate text-xs text-zinc-400">
-          {item.source}
-          {item.date ? ` · ${item.date.slice(5, 10)}` : ""}
-          {item.zh_title && item.zh_title !== item.title ? ` · 原标题：${item.title}` : ""}
+      <div
+        className={
+          isCompact
+            ? "mt-2 flex flex-wrap items-center justify-between gap-2"
+            : "flex flex-wrap items-center justify-between gap-2 border-t border-line/70 px-4 py-2.5 sm:px-5"
+        }
+      >
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 text-[10.5px] text-muted">
+          <span className="truncate">{item.source}</span>
+          {item.date ? (
+            <>
+              <span className="text-line">·</span>
+              <span className="shrink-0">{formatDate(item.date)}</span>
+            </>
+          ) : null}
+          {!isCompact && item.zh_title && item.zh_title !== item.title ? (
+            <span className="hidden truncate text-stone-400 md:inline">· 原标题：{item.title}</span>
+          ) : null}
         </span>
+
         {/* 按钮区阻止冒泡，避免点「已读/稍后读」时顺带展开 */}
-        <span className="flex shrink-0 gap-3 text-xs" onClick={(e) => e.stopPropagation()}>
-          <button
+        <div
+          className="flex shrink-0 items-center gap-0.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ActionIcon
+            label="有用，多推这类"
+            active={verdict === "up"}
+            activeClass="border-emerald-200 bg-emerald-50 text-emerald-700"
             onClick={() => sendFeedback("up")}
-            title="有用（多推这类）"
-            className={verdict === "up" ? "text-emerald-600" : "text-zinc-400 hover:text-emerald-600"}
           >
-            👍
+            <IconThumbsUp className="h-4 w-4" />
+          </ActionIcon>
+          <ActionIcon
+            label="不感兴趣，少推这类"
+            active={verdict === "down"}
+            activeClass="border-rose-200 bg-rose-50 text-rose-700"
+            onClick={() => sendFeedback("down")}
+          >
+            <IconThumbsDown className="h-4 w-4" />
+          </ActionIcon>
+
+          <span className="mx-0.5 h-4 w-px bg-line" />
+
+          <button
+            type="button"
+            onClick={() => setStatus(isRead ? "unread" : "read")}
+            title={isRead ? "撤销已读" : "标为已读"}
+            aria-label={isRead ? "撤销已读" : "标为已读"}
+            className={`grid h-10 w-10 place-items-center rounded-full transition-colors sm:h-8 sm:w-8 ${
+              isRead ? "text-emerald-700 hover:bg-emerald-50" : "text-stone-400 hover:bg-paper-deep hover:text-ink"
+            }`}
+          >
+            <IconCheck className="h-4 w-4" />
           </button>
           <button
-            onClick={() => sendFeedback("down")}
-            title="不感兴趣（少推这类）"
-            className={verdict === "down" ? "text-red-500" : "text-zinc-400 hover:text-red-500"}
+            type="button"
+            onClick={() => setStatus(isLater ? "unread" : "later")}
+            title={isLater ? "取消稍后读" : "稍后读"}
+            aria-label={isLater ? "取消稍后读" : "稍后读"}
+            className={`grid h-10 w-10 place-items-center rounded-full transition-colors sm:h-8 sm:w-8 ${
+              isLater ? "text-amber-700 hover:bg-amber-50" : "text-stone-400 hover:bg-paper-deep hover:text-ink"
+            }`}
           >
-            👎
+            <IconBookmark className="h-4 w-4" />
           </button>
-          {isRead ? (
-            <button onClick={() => setStatus("unread")} className="text-zinc-400 hover:text-zinc-700">撤销已读</button>
-          ) : (
-            <button onClick={() => setStatus("read")} className="text-zinc-400 hover:text-zinc-700">已读</button>
-          )}
-          {item.status === "later" ? (
-            <button onClick={() => setStatus("unread")} className="text-amber-500 hover:text-amber-700">取消稍后</button>
-          ) : (
-            <button onClick={() => setStatus("later")} className="text-amber-500 hover:text-amber-700">稍后读</button>
-          )}
-        </span>
+        </div>
       </div>
     </article>
   );

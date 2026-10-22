@@ -1,6 +1,7 @@
 import { queryItems, type ItemRow } from "@/lib/db";
 import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
+import { IconCalendar } from "../components/Icons";
 
 // 历史页：按期号（北京时间日期）分组，展示全部条目
 export const dynamic = "force-dynamic";
@@ -20,24 +21,34 @@ export default async function Archive() {
 
   return (
     <div>
-      <h1 className="border-b border-zinc-200 pb-2 text-base font-semibold">
-        历史{" "}
-        <span className="text-xs font-normal text-zinc-400">
-          {items.length} 条 · {entries.length} 期
-        </span>
-      </h1>
+      <header className="border-b border-line pb-4">
+        <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
+          <IconCalendar className="h-4 w-4" />
+          Archive
+        </p>
+        <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-ink">
+          历史
+          <span className="ml-2 align-middle font-sans text-xs font-normal text-muted">
+            {items.length} 条 · {entries.length} 期
+          </span>
+        </h1>
+      </header>
 
-      {items.length === 0 && <p className="mt-6 text-sm text-zinc-500">还没有历史数据。</p>}
+      {items.length === 0 && <p className="mt-6 text-sm text-muted">还没有历史数据。</p>}
 
       {entries.map(([issue, list]) => (
-        <section key={issue} className="mt-6">
-          <h2 className="border-b border-zinc-200 pb-2 text-sm font-semibold text-zinc-700">
-            {issue === "更早" ? "更早（未分期）" : issue}{" "}
-            <span className="text-xs font-normal text-zinc-400">{list.length} 条</span>
-          </h2>
-          {list.map((it) => (
-            <ItemCard key={it.id} item={it} related={parseRelated(it.related)} />
-          ))}
+        <section key={issue} className="mt-8">
+          <div className="sticky top-[3.25rem] z-30 -mx-1 flex items-baseline gap-3 border-b border-line bg-paper/90 px-1 py-2.5 backdrop-blur">
+            <h2 className="font-serif text-lg font-semibold tracking-tight text-ink">
+              {issue === "更早" ? "更早（未分期）" : issue}
+            </h2>
+            <span className="text-[11px] text-muted">{list.length} 条</span>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {list.map((it) => (
+              <ItemCard key={it.id} item={it} related={parseRelated(it.related)} />
+            ))}
+          </div>
         </section>
       ))}
     </div>

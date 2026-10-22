@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import NavLinks from "./components/NavLinks";
+import { IconSun } from "./components/Icons";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,18 +12,37 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-zinc-50">
-        <header className="border-b border-zinc-200 bg-white">
-          <nav className="mx-auto flex max-w-2xl items-center gap-6 px-4 py-3">
-            <Link href="/" className="font-semibold text-zinc-900">信息早餐</Link>
-            <Link href="/later" className="text-sm text-zinc-500 hover:text-zinc-900">稍后读</Link>
-            <Link href="/archive" className="text-sm text-zinc-500 hover:text-zinc-900">历史</Link>
-            <Link href="/settings" className="text-sm text-zinc-500 hover:text-zinc-900">设置</Link>
-          </nav>
+      <body className="flex min-h-full flex-col">
+        <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/80 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+            <Link href="/" className="flex shrink-0 items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 text-white shadow-sm">
+                <IconSun className="h-5 w-5" />
+              </span>
+              <span className="leading-tight">
+                <span className="block font-serif text-[17px] font-semibold tracking-tight text-ink">
+                  信息早餐
+                </span>
+                <span className="hidden text-[9px] uppercase tracking-[0.2em] text-muted sm:block">
+                  AI Daily Brief
+                </span>
+              </span>
+            </Link>
+            <div className="ml-auto min-w-0">
+              <NavLinks />
+            </div>
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
-        <footer className="mx-auto w-full max-w-2xl px-4 pb-8 text-xs text-zinc-400">
-          摘要由 LLM 生成仅供导读，以原文为准 · 阶段 1 本地版
+
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
+          {children}
+        </main>
+
+        <footer className="border-t border-line/70">
+          <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p>摘要由 LLM 生成，仅供导读，以原文为准。</p>
+            <p>morning-brief · 每天自动更新</p>
+          </div>
         </footer>
       </body>
     </html>

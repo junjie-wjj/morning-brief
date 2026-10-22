@@ -16,6 +16,52 @@ const DEFAULTS: Settings = {
 
 type MultiField = "tags" | "sources" | "products";
 
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-line bg-white p-5 shadow-soft">
+      <h2 className="text-sm font-semibold tracking-tight text-ink">{title}</h2>
+      <p className="mt-1 text-xs leading-5 text-muted">{hint}</p>
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+function Chip({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+        checked
+          ? "border-amber-300 bg-amber-50 text-amber-900"
+          : "border-line bg-white text-ink-soft hover:border-amber-200 hover:bg-amber-50/40"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="h-3.5 w-3.5 rounded border-stone-300 accent-amber-600"
+      />
+      {children}
+    </label>
+  );
+}
+
 export default function SettingsForm({
   initial,
   options,
@@ -57,129 +103,117 @@ export default function SettingsForm({
     startTransition(() => router.refresh());
   }
 
-  const box = "h-4 w-4 rounded border-zinc-300 text-indigo-600 accent-indigo-600";
-  const label = "flex items-center gap-2 text-sm text-zinc-700";
-
   return (
-    <div className="mt-5 space-y-7">
-      <section>
-        <h2 className="text-sm font-semibold text-zinc-900">兴趣分下限</h2>
-        <p className="mt-1 text-xs text-zinc-500">低于这个分数的资讯会收进首页底部的折叠区；产品追踪不受影响。</p>
-        <select
-          value={s.minScore}
-          onChange={(e) => setS({ ...s, minScore: Number(e.target.value) })}
-          className="mt-2 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm"
-        >
-          <option value={1}>1 分（全部显示）</option>
-          <option value={2}>2 分</option>
-          <option value={3}>3 分（推荐：隐藏明显低质）</option>
-          <option value={4}>4 分（只看高分）</option>
-          <option value={5}>5 分（只看最高分）</option>
-        </select>
-      </section>
+    <div className="mt-6 space-y-4">
+      <Section title="兴趣分下限" hint="低于这个分数的资讯会收进首页底部的折叠区；产品追踪不受影响。">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { v: 1, label: "1 · 全部显示" },
+            { v: 2, label: "2" },
+            { v: 3, label: "3 · 推荐" },
+            { v: 4, label: "4 · 只看高分" },
+            { v: 5, label: "5 · 最高分" },
+          ].map(({ v, label }) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setS({ ...s, minScore: v })}
+              aria-pressed={s.minScore === v}
+              className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${
+                s.minScore === v
+                  ? "border-amber-400 bg-amber-500 text-white shadow-sm"
+                  : "border-line bg-white text-ink-soft hover:border-amber-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Section>
 
-      <section>
-        <h2 className="text-sm font-semibold text-zinc-900">分类</h2>
-        <p className="mt-1 text-xs text-zinc-500">不勾选表示不限；全部勾选也等于不限。</p>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <Section title="分类" hint="不勾选表示不限；全部勾选也等于不限。">
+        <div className="flex flex-wrap gap-2">
           {options.tags.map((tag) => (
-            <label key={tag} className={label}>
-              <input
-                type="checkbox"
-                className={box}
-                checked={chosen("tags", options.tags).has(tag)}
-                onChange={() => toggle("tags", options.tags, tag)}
-              />
+            <Chip key={tag} checked={chosen("tags", options.tags).has(tag)} onChange={() => toggle("tags", options.tags, tag)}>
               {tag}
-            </label>
+            </Chip>
           ))}
         </div>
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="text-sm font-semibold text-zinc-900">来源</h2>
-        <p className="mt-1 text-xs text-zinc-500">关掉不想看的来源，例如只想留官方博客和量子位。</p>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <Section title="来源" hint="关掉不想看的来源，例如只想留官方博客和量子位。">
+        <div className="flex flex-wrap gap-2">
           {options.sources.map((source) => (
-            <label key={source} className={label}>
-              <input
-                type="checkbox"
-                className={box}
-                checked={chosen("sources", options.sources).has(source)}
-                onChange={() => toggle("sources", options.sources, source)}
-              />
+            <Chip key={source} checked={chosen("sources", options.sources).has(source)} onChange={() => toggle("sources", options.sources, source)}>
               {source}
-            </label>
+            </Chip>
           ))}
         </div>
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="text-sm font-semibold text-zinc-900">产品追踪</h2>
-        <p className="mt-1 text-xs text-zinc-500">只关注你需要的产品（不勾选表示全部保留）。</p>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <Section title="产品追踪" hint="只关注你需要的产品（不勾选表示全部保留）。">
+        <div className="flex flex-wrap gap-2">
           {options.products.map((product) => (
-            <label key={product} className={label}>
-              <input
-                type="checkbox"
-                className={box}
-                checked={chosen("products", options.products).has(product)}
-                onChange={() => toggle("products", options.products, product)}
-              />
+            <Chip key={product} checked={chosen("products", options.products).has(product)} onChange={() => toggle("products", options.products, product)}>
               {product}
-            </label>
+            </Chip>
           ))}
         </div>
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="text-sm font-semibold text-zinc-900">屏蔽关键词</h2>
-        <p className="mt-1 text-xs text-zinc-500">标题包含这些词的条目不显示，一行一个（或逗号分隔）。</p>
+      <Section title="屏蔽关键词" hint="标题包含这些词的条目不显示，一行一个（或逗号分隔）。">
         <textarea
           value={keywords}
           onChange={(e) => setKeywords(e.target.value)}
           rows={3}
           placeholder={"融资\n招聘\n裁员"}
-          className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm leading-6 text-ink shadow-inner outline-none transition-colors placeholder:text-stone-300 focus:border-amber-400"
         />
-      </section>
+      </Section>
 
-      <section className="space-y-2">
-        <label className={label}>
-          <input
-            type="checkbox"
-            className={box}
-            checked={s.unreadOnly}
-            onChange={(e) => setS({ ...s, unreadOnly: e.target.checked })}
-          />
-          只显示未读
-        </label>
-        <label className={label}>
-          <input
-            type="checkbox"
-            className={box}
-            checked={s.hideDownvoted}
-            onChange={(e) => setS({ ...s, hideDownvoted: e.target.checked })}
-          />
-          隐藏点过「👎 不感兴趣」的条目
-        </label>
-      </section>
+      <Section title="其他" hint="阅读状态与反馈显示控制。">
+        <div className="flex flex-col gap-3">
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-soft">
+            <input
+              type="checkbox"
+              checked={s.unreadOnly}
+              onChange={(e) => setS({ ...s, unreadOnly: e.target.checked })}
+              className="h-4 w-4 rounded border-stone-300 accent-amber-600"
+            />
+            只显示未读
+          </label>
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-soft">
+            <input
+              type="checkbox"
+              checked={s.hideDownvoted}
+              onChange={(e) => setS({ ...s, hideDownvoted: e.target.checked })}
+              className="h-4 w-4 rounded border-stone-300 accent-amber-600"
+            />
+            隐藏点过「不感兴趣」的条目
+          </label>
+        </div>
+      </Section>
 
-      <div className="flex items-center gap-3 border-t border-zinc-200 pt-4">
+      <div className="sticky bottom-4 flex items-center gap-3 rounded-2xl border border-line bg-white/90 p-3 shadow-lift backdrop-blur">
         <button
           onClick={() => save(s)}
           disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+          className="rounded-xl bg-ink px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-stone-700 disabled:opacity-60"
         >
           保存设置
         </button>
         <button
           onClick={() => { setS(DEFAULTS); setKeywords(""); save(DEFAULTS, ""); }}
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+          className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink-soft transition-colors hover:bg-paper-deep"
         >
           恢复默认
         </button>
-        {saved && <span className="text-sm text-emerald-600">已保存</span>}
+        <span
+          aria-live="polite"
+          className={`text-sm font-medium text-emerald-700 transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}
+        >
+          已保存
+        </span>
       </div>
     </div>
   );
