@@ -10,7 +10,9 @@
     "seed": "node scripts/seed.mjs",
     "seed:cloud": "node scripts/seed.mjs --cloud",
     "backfill": "node scripts/backfill.mjs",
-    "backfill:local": "node scripts/backfill.mjs --local"
+    "backfill:local": "node scripts/backfill.mjs --local",
+    "export:preferences": "node scripts/export-feedback.mjs",
+    "export:preferences:local": "node scripts/export-feedback.mjs --local"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

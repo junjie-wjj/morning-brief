@@ -22,14 +22,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: 安装 web 依赖（导出偏好与同步数据库共用）
+        run: npm ci
+        working-directory: web
+      - name: 导出反馈偏好（用于偏好搜索）
+        continue-on-error: true   # 没有反馈或读库失败时，brief.mjs 会沿用固定搜索词
+        run: npm run export:preferences
+        working-directory: web
+        env:
+          LIBSQL_URL: ${{ secrets.LIBSQL_URL }}
+          LIBSQL_AUTH_TOKEN: ${{ secrets.LIBSQL_AUTH_TOKEN }}
       - run: node brief.mjs
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
       - name: 同步最新数据到云端应用数据库（Turso）
         continue-on-error: true   # 即使这步失败，静态简报照常发布
-        run: |
-          npm ci
-          npm run seed:cloud
+        run: npm run seed:cloud
         working-directory: web
         env:
           LIBSQL_URL: ${{ secrets.LIBSQL_URL }}

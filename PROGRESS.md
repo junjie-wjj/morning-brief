@@ -435,3 +435,42 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 - 去重只在**本次抓取窗口**内判断；同一事件若隔天再次被报道，可能重新出现（通常链接相同会被 upsert 合并）。
 - LLM 判断仍有主观性；当前规则保证「宁可少合并，不乱合并」——同源、单条、重叠组一律拒绝。
 - 每次去重额外调用 1-2 次 LLM（每 40 条一次），失败不影响主流程。
+
+## 偏好搜索（简单版，2026-10-22）
+
+目标：让 👍/👎 不只影响页面排序，还能改变**下一次抓取的搜索词**。
+
+### 实现
+
+- **`lib/preferences.mjs`（新增）**：
+  - `selectSearchTerms(stats)` 把反馈统计变成搜索词：产品名直接用；分类走映射表
+    （福利资源 → `free LLM API`，模型发布 → `new AI model`，研究进展 → `AI research paper`）。
+  - 净赞（赞 − 踩）≥ 2 才启用；同一词只保留一条；最多 5 个词。
+  - 每个词带 `match` 正则：产品名按字面匹配，分类短语用一组关键词（如 `free|免费|api|token|额度`），
+    过滤搜索引擎的模糊结果。
+- **`web/scripts/export-feedback.mjs`（新增）**：`feedback JOIN items` 按产品/分类聚合，
+  输出 `web/data/preferences.json`（已 gitignore）。支持 `--local`（本地库）和默认云端。
+- **`brief.mjs`**：读取偏好文件；有足够反馈时追加动态源「偏好搜索 · 你赞过的主题」，
+  对每个词同时查 Google 新闻与 HN，标题必须命中 `match`；抓回条目进入资讯层，正常参与打分/去重/筛选。
+  没有反馈文件或净赞不足时，完全沿用原有抓取。
+- **`.github/workflows/daily.yml`**：`npm ci` 提前到抓取前，先跑 `export:preferences` 再跑 `brief.mjs`；
+  导出失败用 `continue-on-error`，不影响正常简报。
+- **`web/package.json`**：新增 `export:preferences` 与 `export:preferences:local`。
+- `docs/data.json` 新增 `preferenceTerms` 字段，记录本次实际启用的词，便于排查。
+
+### 验证
+
+- `lib/preferences.test.mjs`：7 条用例通过（阈值、排序、分类映射、去重、上限、匹配规则、脏数据）。
+- 用本地库插入 4 条合成反馈（2 个 DeepSeek 产品 + 2 个福利资源），导出得到产品/分类统计，
+  `selectSearchTerms` 正确选出 3 个词（DeepSeek、free LLM API、new AI model）。
+- 真实抓取（临时关闭 LLM）：偏好源先抓回 8 条，加入匹配规则后 7 条，再收紧「模型发布」规则后 6 条；
+  最终内容为 5 条 DeepSeek 相关 + 1 条免费 LLM 应用，噪音（Show HN 经济模型、无关 model 用法）已过滤。
+- 测试用的合成反馈已删除，`preferences.json` 重置为 0 条；`docs/` 已恢复为 64 条的正式数据。
+- 顺带修复 `mapHnHits` 的无原文链接回退：HN Algolia 返回的是 `objectID`，原代码用的 `object_id`
+  会生成 `id=undefined` 的链接；现在兼容两种字段。
+
+### 下一步（等反馈积累后再做）
+
+- **进阶版关键词提取**：让 LLM 从点赞过的标题/摘要里提取主题词（当前只用产品名和分类映射）。
+- 用户明确要求：**等收集到一定量的真实反馈后，先问用户「这些是不是你想看的」，确认后再做进阶版**。
+- 可考虑滚动窗口（如最近 30 天）而不是永久累计，避免旧兴趣长期主导搜索。

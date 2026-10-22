@@ -79,6 +79,8 @@ import {
 } from './lib/extract.mjs';
 import { mapHfModels, mapReleaseItems, mapNewsItems, mapHnHits, dedupeByLink } from './lib/products.mjs';
 import { buildDedupePrompt, applyDedupe } from './lib/dedup.mjs';
+import { selectSearchTerms } from './lib/preferences.mjs';
+import { readFileSync } from 'node:fs';
 
 // 成本控制：只对高分条目做（正文比标题长几十倍，全量会让调用量涨十倍以上）。
 // 想全量就把 POINTS_MIN_SCORE 设为 1；完全关掉用 --skip-points 或 POINTS_ENABLED=0。
@@ -548,6 +550,50 @@ async function fetchKeywordNews(product, news) {
   return dedupeByLink(out).slice(0, 2);
 }
 
+// 偏好搜索：把反馈统计里挑出的词，拿去 Google 新闻 + HN 搜索。
+// 与产品追踪不同，这里不设 product——条目进入资讯层，正常参与打分、去重和筛选。
+async function fetchPreferenceNews(source) {
+  const terms = Array.isArray(source.terms) ? source.terms : [];
+  const out = [];
+
+  for (const t of terms) {
+    const term = t?.term;
+    if (!term) continue;
+    // 标题必须命中匹配规则：产品名按字面匹配，分类短语用一组关键词。
+    // 搜索引擎会做模糊匹配，不加这层会混进完全无关的帖子。
+    const re = t.match ? new RegExp(t.match, 'i') : null;
+    const keep = (it) => !re || re.test(it.title);
+
+    try {
+      const xml = await fetchText(
+        `https://news.google.com/rss/search?q=${encodeURIComponent(term)}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`,
+      );
+      out.push(...mapNewsItems(parseFeed(xml), { days: 7, max: 6 })
+        .filter(keep).slice(0, 2)
+        .map((it) => ({ ...it, source: source.name })));
+    } catch (err) {
+      console.log(`  ⚠ 偏好搜索：「${term}」的 Google 新闻失败（${err.message}）`);
+    }
+
+    try {
+      const since = Math.floor(Date.now() / 1000) - 7 * 86_400;
+      const json = JSON.parse(await fetchText(
+        `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(term)}` +
+        `&tags=story&numericFilters=created_at_i%3E${since}&hitsPerPage=20`,
+      ));
+      out.push(...mapHnHits(json.hits, { days: 7, max: 6 })
+        .filter(keep).slice(0, 2)
+        .map((it) => ({ ...it, source: source.name })));
+    } catch (err) {
+      console.log(`  ⚠ 偏好搜索：「${term}」的 HN 搜索失败（${err.message}）`);
+    }
+  }
+
+  return dedupeByLink(out)
+    .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
+    .slice(0, source.max ?? 8);
+}
+
 /** 逐个产品抓取第一手更新；单个来源失败只影响该产品，不阻塞其他产品 */
 async function fetchProducts(vendorItems) {
   const out = [];
@@ -628,6 +674,7 @@ async function fetchSource(source) {
     const fetchers = {
       rss: fetchRss, anthropic: fetchAnthropic,
       'hn-ai': fetchHnAi, gh: fetchGitHubReleases, 'gh-commits': fetchGhCommits,
+      prefs: fetchPreferenceNews,
     };
     const fetcher = fetchers[source.type];
     if (!fetcher) throw new Error(`未知源类型 ${source.type}`);
@@ -883,12 +930,44 @@ async function renderFromData() {
   console.log(`已从 docs/data.json 重渲染 docs/index.html（共 ${total} 条）`);
 }
 
+const PREFERENCES_FILE = process.env.PREFERENCES_FILE ?? 'web/data/preferences.json';
+
+/** 读取应用导出的反馈统计；没有文件或格式错误时返回 null（不影响正常抓取） */
+function loadPreferenceStats() {
+  try {
+    return JSON.parse(readFileSync(PREFERENCES_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   if (process.argv.includes('--html-only')) {
     await renderFromData();
     return;
   }
-  const results = await Promise.all(SOURCES.map(fetchSource));
+
+  // 偏好搜索（简单版）：反馈 → 产品名/分类短语 → 额外搜索词。
+  // 没有反馈文件、或净赞不够时，完全不影响原有抓取。
+  const prefStats = loadPreferenceStats();
+  const prefTerms = prefStats ? selectSearchTerms(prefStats) : [];
+  if (prefStats?.feedbackCount) {
+    console.log(prefTerms.length
+      ? `偏好搜索：启用 ${prefTerms.length} 个词（${prefTerms.map((t) => t.term).join('、')}）`
+      : `偏好搜索：反馈不足（${prefStats.feedbackCount} 条，需同一主题净赞 ≥ 2），本次沿用固定搜索词`);
+  }
+
+  const sources = [...SOURCES];
+  if (prefTerms.length) {
+    sources.push({
+      name: '偏好搜索 · 你赞过的主题',
+      type: 'prefs',
+      terms: prefTerms,
+      max: 8,
+      days: 7,
+    });
+  }
+  const results = await Promise.all(sources.map(fetchSource));
   const okResults = results.filter((r) => r.status === 'ok');
   const failedCount = results.length - okResults.length;
   const failedNote = failedCount
@@ -967,6 +1046,8 @@ async function main() {
   const dataForApp = {
     generatedAt: new Date().toISOString(),
     issue,
+    // 本次实际启用的偏好搜索词，便于排查「为什么多/少了这些条目」
+    preferenceTerms: prefTerms.map((t) => ({ term: t.term, kind: t.kind, label: t.label, net: t.net })),
     items: flat.map((it) => {
       const p = pointsMap.get(it.link);
       return {

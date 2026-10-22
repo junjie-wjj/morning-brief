@@ -44,6 +44,40 @@ npm run seed:cloud     # 导入云端 Turso（线上应用的数据源，需要 
 
 边界：筛选只影响首页显示，不删除数据；`/archive` 历史页始终完整。产品条目只受「产品关注清单」约束。
 
+## 偏好搜索（简单版）
+
+👍/👎 不只影响页面排序，还会变成**下一次抓取的额外搜索词**：
+
+- 净赞（赞 − 踩）≥ 2 的**产品名** → 加进 Google 新闻 + Hacker News 搜索
+- 净赞 ≥ 2 的**分类** → 用预设短语搜索：
+  - 福利资源 → `free LLM API`
+  - 模型发布 → `new AI model`
+  - 研究进展 → `AI research paper`
+- 每次最多 5 个词、抓回 8 条；标题必须命中匹配规则，避免搜索引擎的模糊噪音
+- 反馈不足时不启用，完全不影响原有抓取
+
+数据流：
+
+```text
+应用写 feedback 表
+  → web/scripts/export-feedback.mjs 聚合成 web/data/preferences.json
+  → brief.mjs 读取并追加「偏好搜索 · 你赞过的主题」源
+```
+
+手动运行（本地库）：
+
+```bash
+cd web
+npm run export:preferences:local   # 云端用 npm run export:preferences
+cd ..
+node brief.mjs
+```
+
+线上每日任务已自动包含这一步（`.github/workflows/daily.yml` 在抓取前导出云端反馈）。
+`web/data/preferences.json` 已 gitignore，不会提交。
+
+边界：RSS 源无法按关键词扩展，只有 Google 新闻 / HN 这类搜索源能加词；进阶版（让 LLM 从点赞文章里提取主题词）等反馈积累后再做。
+
 ## 首页与期号
 
 - 首页只显示**最新一期**（北京时间日期，如 `2026-10-21`），页头标注「最新一期 · 日期 · 共 N 条」
