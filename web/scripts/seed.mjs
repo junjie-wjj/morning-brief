@@ -84,7 +84,10 @@ const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary,
     body_chars = COALESCE(excluded.body_chars, items.body_chars),
     body_via   = COALESCE(excluded.body_via,   items.body_via),
     product    = COALESCE(excluded.product,    items.product),
-    issue      = COALESCE(excluded.issue,      items.issue),
+    -- 期号 = 这条最近一次出现在抓取窗口里的日期，必须覆盖。
+    -- 若用 COALESCE 保留首次出现的期号，第二天重复抓到的链接会留在旧期，
+    -- 首页「只显示最新一期」就会只剩极少数全新链接，大部分内容被藏起来。
+    issue      = excluded.issue,
     dup_of     = ${dedupRan ? "excluded.dup_of" : "items.dup_of"},
     related    = ${dedupRan ? "excluded.related" : "items.related"}`;
 
