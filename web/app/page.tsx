@@ -95,7 +95,7 @@ export default async function Home() {
             </p>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
               <span className="rounded-full border border-line bg-white px-2.5 py-1">
-                共 {newsVisible.length + productItems.length} 条
+                共 {displayed.length} 条
               </span>
               {unreadCount > 0 ? (
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-800">

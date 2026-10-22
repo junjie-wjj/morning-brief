@@ -517,3 +517,12 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 
 - 衬线标题用系统字体栈（Iowan/Palatino/Georgia/宋体），各平台渲染略有差异，但不加载网络字体（国内 Google Fonts 会拖慢/超时）。
 - 产品分组里的 compact 卡片没有操作底栏分区（用分隔线代替），功能与普通卡片完全一致。
+
+## 推送与上线（2026-10-22）
+
+- 12 个本地提交已推送到 `github.com/junjie-wjj/morning-brief`（`ab6fae1..01a859d`）。
+- `deploy-web` 工作流自动构建并部署到 Netlify，线上已显示新 UI。
+- 推送时使用 Git Credential Manager 浏览器授权（设备码流程被取消后改用 `credential.gitHubAuthModes=browser`）。
+- 线上统计口径再次修正：「共 N 条」改为与未读数同一集合（可见 + 折叠低分 + 产品），
+  避免低分折叠区未读条目让未读数大于总数。
+- 待办：GitHub Pages 静态页仍是旧版，次日 `daily-brief` 运行后更新；也可在 Actions 手动触发。
