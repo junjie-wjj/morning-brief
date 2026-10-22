@@ -96,6 +96,9 @@ const POINTS_ITEM_TIMEOUT_MS = Number(process.env.POINTS_ITEM_TIMEOUT_MS ?? 3 * 
 // 整条管线的总时长上限：抓取 + AI 加工 + 去重 + 精简版。
 // 达到上限后按阶段跳过剩余工作，保证每日任务不会因限流跑到几十分钟以上。
 const PIPELINE_DEADLINE_MS = Number(process.env.PIPELINE_DEADLINE_MS ?? 25 * 60_000);
+// 单批上限：总时限只在批次之间检查，如果一批自己跑 20 分钟，仍然会超时。
+const ENRICH_BATCH_TIMEOUT_MS = Number(process.env.ENRICH_BATCH_TIMEOUT_MS ?? 8 * 60_000);
+const DEDUPE_BATCH_TIMEOUT_MS = Number(process.env.DEDUPE_BATCH_TIMEOUT_MS ?? 8 * 60_000);
 
 // ---------- 小工具 ----------
 
@@ -341,7 +344,7 @@ async function enrichWithLLM(items, deadline = Infinity) {
     }
     const chunk = items.slice(i, i + 40);
     try {
-      const part = await enrichBatch(chunk);
+      const part = await withTimeout(enrichBatch(chunk), ENRICH_BATCH_TIMEOUT_MS, 'AI 加工单批');
       for (const [k, v] of part) merged.set(k, v);
     } catch (err) {
       failed.push(err);
@@ -374,10 +377,10 @@ async function dedupeNews(items, enriched, chatFn = chatWithFallback, deadline =
     }
     const chunk = news.slice(i, i + 40);
     try {
-      const content = await chatFn([
+      const content = await withTimeout(chatFn([
         { role: 'system', content: SYSTEM_NEWS_EDITOR },
         { role: 'user', content: buildDedupePrompt(chunk) },
-      ]);
+      ]), DEDUPE_BATCH_TIMEOUT_MS, '去重单批');
       const cleaned = content.replace(/```(?:json)?/g, '').trim();
       const parsed = JSON.parse(cleaned.slice(cleaned.indexOf('{'), cleaned.lastIndexOf('}') + 1));
       for (const g of parsed.groups ?? []) {
