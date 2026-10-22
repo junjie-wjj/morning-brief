@@ -66,8 +66,10 @@ for (const [name, type] of NEW_COLUMNS) {
 //   2. AI 加工列（zh_title/summary/tag/score/points）—— LLM 加工失败时 brief.mjs 会降级
 //      输出原始抓取，这几个字段全是 null。若照写就会把库里已有的中文摘要覆盖成空，
 //      即"一次限流抹掉全部历史摘要"。用 COALESCE 逐列保留：新值非 null 才覆盖。
-// 去重列（dup_of/related）例外：每次运行都重新计算，必须原样覆盖。若用 COALESCE，
-// 某次误判为重复的条目会永远隐藏，之后即使不再重复也无法恢复。
+// 去重列（dup_of/related）：本次运行有算过去重就原样覆盖，否则保留旧值。
+// 降级日（LLM 失败）data.json 里 dupOf 全为 null，若照写就会把昨天正确合并的条目
+// 全部"复活"成独立条目；brief.mjs 用 deduped 字段标记本次是否算过去重。
+const dedupRan = Boolean(data.deduped);
 const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary, tag, score,
     points, points_reason, body_chars, body_via, product, issue, dup_of, related)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -83,8 +85,8 @@ const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary,
     body_via   = COALESCE(excluded.body_via,   items.body_via),
     product    = COALESCE(excluded.product,    items.product),
     issue      = COALESCE(excluded.issue,      items.issue),
-    dup_of     = excluded.dup_of,
-    related    = excluded.related`;
+    dup_of     = ${dedupRan ? "excluded.dup_of" : "items.dup_of"},
+    related    = ${dedupRan ? "excluded.related" : "items.related"}`;
 
 let n = 0;
 let withPoints = 0;

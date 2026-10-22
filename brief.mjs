@@ -1046,6 +1046,9 @@ async function main() {
   const dataForApp = {
     generatedAt: new Date().toISOString(),
     issue,
+    // 本次是否算过多源去重。降级日（LLM 失败）为 false，
+    // seed.mjs 据此保留库里已有的 dup_of/related，避免重复条目"复活"
+    deduped: Boolean(enriched),
     // 本次实际启用的偏好搜索词，便于排查「为什么多/少了这些条目」
     preferenceTerms: prefTerms.map((t) => ({ term: t.term, kind: t.kind, label: t.label, net: t.net })),
     items: flat.map((it) => {

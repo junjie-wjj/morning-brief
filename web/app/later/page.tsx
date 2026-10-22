@@ -1,4 +1,4 @@
-import { queryItems } from "@/lib/db";
+import { getFeedback, queryItems } from "@/lib/db";
 import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
 import { IconCalendar, IconNewspaper } from "../components/Icons";
@@ -7,7 +7,10 @@ import { IconCalendar, IconNewspaper } from "../components/Icons";
 export const dynamic = "force-dynamic";
 
 export default async function Later() {
-  const items = await queryItems("SELECT * FROM items WHERE status = 'later' ORDER BY id DESC");
+  const [items, feedback] = await Promise.all([
+    queryItems("SELECT * FROM items WHERE status = 'later' ORDER BY id DESC"),
+    getFeedback(),
+  ]);
 
   return (
     <div className="max-w-2xl">
@@ -29,7 +32,12 @@ export default async function Later() {
       )}
       <div className="mt-6 grid gap-4">
         {items.map((it) => (
-          <ItemCard key={it.id} item={it} related={parseRelated(it.related)} />
+          <ItemCard
+            key={it.id}
+            item={it}
+            verdict={feedback.get(it.link) ?? null}
+            related={parseRelated(it.related)}
+          />
         ))}
       </div>
     </div>
