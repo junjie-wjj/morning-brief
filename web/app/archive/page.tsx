@@ -1,4 +1,4 @@
-import { queryItems, type ItemRow } from "@/lib/db";
+import { getFeedback, queryItems, type ItemRow } from "@/lib/db";
 import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
 import { IconCalendar } from "../components/Icons";
@@ -8,8 +8,11 @@ export const dynamic = "force-dynamic";
 
 export default async function Archive() {
   // 被多源去重合并的报道不重复展示；主条目带有「相关报道」链接
-  const items = (await queryItems("SELECT * FROM items ORDER BY date DESC, id DESC"))
-    .filter((it) => !it.dup_of);
+  const [allItems, feedback] = await Promise.all([
+    queryItems("SELECT * FROM items ORDER BY date DESC, id DESC"),
+    getFeedback(),
+  ]);
+  const items = allItems.filter((it) => !it.dup_of);
 
   const groups = new Map<string, ItemRow[]>();
   for (const it of items) {
@@ -38,7 +41,7 @@ export default async function Archive() {
 
       {entries.map(([issue, list]) => (
         <section key={issue} className="mt-8">
-          <div className="sticky top-[3.25rem] z-30 -mx-1 flex items-baseline gap-3 border-b border-line bg-paper/90 px-1 py-2.5 backdrop-blur">
+          <div className="sticky top-[61px] z-30 -mx-1 flex items-baseline gap-3 border-b border-line bg-paper/90 px-1 py-2.5 backdrop-blur">
             <h2 className="font-serif text-lg font-semibold tracking-tight text-ink">
               {issue === "更早" ? "更早（未分期）" : issue}
             </h2>
@@ -46,7 +49,12 @@ export default async function Archive() {
           </div>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {list.map((it) => (
-              <ItemCard key={it.id} item={it} related={parseRelated(it.related)} />
+              <ItemCard
+                key={it.id}
+                item={it}
+                verdict={feedback.get(it.link) ?? null}
+                related={parseRelated(it.related)}
+              />
             ))}
           </div>
         </section>

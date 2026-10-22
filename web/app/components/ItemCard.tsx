@@ -28,9 +28,19 @@ function tagTone(tag: string) {
   return TAG_TONES[tag] ?? "border-stone-200 bg-stone-100 text-stone-600";
 }
 
+const BEIJING_DATE = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Shanghai",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 function formatDate(iso: string) {
-  const m = iso.match(/^\d{4}-(\d{2})-(\d{2})/);
-  return m ? `${m[1]}.${m[2]}` : "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const parts = BEIJING_DATE.formatToParts(d);
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  return month && day ? `${month}.${day}` : "";
 }
 
 function ScoreBadge({ score }: { score: number }) {

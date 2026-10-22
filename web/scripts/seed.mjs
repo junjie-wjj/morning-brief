@@ -80,9 +80,21 @@ const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary,
     tag      = COALESCE(excluded.tag,      items.tag),
     score    = COALESCE(excluded.score,    items.score),
     points   = COALESCE(excluded.points,   items.points),
-    points_reason = COALESCE(excluded.points_reason, items.points_reason),
-    body_chars = COALESCE(excluded.body_chars, items.body_chars),
-    body_via   = COALESCE(excluded.body_via,   items.body_via),
+    -- 精简版的元数据（失败原因/正文字数/来源）必须和 points 同生共死：
+    -- 旧条目已有 points 时，本次抓正文失败不能把它的元数据覆盖成失败原因，
+    -- 否则页面会出现"有精简版内容 + 付费墙失败原因"的矛盾组合。
+    points_reason = CASE
+      WHEN excluded.points IS NOT NULL THEN excluded.points_reason
+      WHEN items.points IS NULL THEN excluded.points_reason
+      ELSE items.points_reason END,
+    body_chars = CASE
+      WHEN excluded.points IS NOT NULL THEN excluded.body_chars
+      WHEN items.points IS NULL THEN excluded.body_chars
+      ELSE items.body_chars END,
+    body_via = CASE
+      WHEN excluded.points IS NOT NULL THEN excluded.body_via
+      WHEN items.points IS NULL THEN excluded.body_via
+      ELSE items.body_via END,
     product    = COALESCE(excluded.product,    items.product),
     -- 期号 = 这条最近一次出现在抓取窗口里的日期，必须覆盖。
     -- 若用 COALESCE 保留首次出现的期号，第二天重复抓到的链接会留在旧期，

@@ -18,8 +18,16 @@ import {
 // 每次请求实时读数据库再渲染（经典 SSR 模式）
 export const dynamic = "force-dynamic";
 
+// 服务器（Netlify）跑在 UTC，问候语必须显式按北京时间取小时，
+// 否则北京时间早上 9 点会显示成"夜深了"。
+const BEIJING_HOUR = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Shanghai",
+  hour: "numeric",
+  hourCycle: "h23",
+});
+
 function greeting() {
-  const h = new Date().getHours();
+  const h = Number(BEIJING_HOUR.format(new Date()));
   if (h < 5) return "夜深了";
   if (h < 11) return "早上好";
   if (h < 14) return "中午好";
