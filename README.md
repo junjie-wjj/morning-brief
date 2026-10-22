@@ -17,6 +17,7 @@ npm run dev            # 启动本地应用 → http://localhost:3000（用本�
 
 # 更新数据（在仓库根目录执行抓取，然后导入）
 node brief.mjs         # 抓取 + LLM 加工 → docs/data.json
+node brief.mjs --html-only   # 不重新抓取，只用现有 data.json 重渲染静态页（回填后同步用）
 cd web
 npm run seed           # 导入本地数据库（开发用）
 npm run seed:cloud     # 导入云端 Turso（线上应用的数据源，需要 web/.env.cloud）

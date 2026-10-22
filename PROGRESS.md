@@ -238,8 +238,9 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 **可选**
 
 8. PWA（添加到主屏幕）、历史简报回看与搜索、数据定期导出备份。
-9. 若想让仓库里的 `docs/` 与线上一致：给 `brief.mjs` 加 `--html-only`
-   （从现有 `data.json` 重新渲染页面，不重新抓取），或让 `daily.yml` 回写 `docs/`。
+9. ~~若想让仓库里的 `docs/` 与线上一致：给 `brief.mjs` 加 `--html-only`~~
+   ✅ 已实现（2026-10-22）：`node brief.mjs --html-only` 从现有 `data.json` 重渲染静态页，
+   不重新抓取、不调用 LLM；回填摘要/精简版后用它同步静态页。页面模板已抽成 `renderHtml`，与正常生成共用。
 
 ## 本次改动提交索引（2026-10-15）
 
@@ -417,8 +418,8 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 
 ### 验证
 
-- `node --test`：**68/68 通过**（新增 8 条去重用例：提示词、主条目选择、同分取更早、
-  非法/单条/重叠组、同源拒绝、混合组拒绝、相关报道上限）。
+- `node --test`：**69/69 通过**（新增 9 条去重用例：提示词、主条目选择、同分取更早、
+  非法/单条/重叠组、同源拒绝、混合组拒绝、相关报道上限，以及静态页隐藏重复 + 主条目挂相关报道）。
 - 真实管线跑了 3 次：前两次各合并 1 组（均为上述误判），修正后第 3 次输出「未发现跨来源重复报道」；
   当日样本里确实没有真正的跨来源重复。
 - 端到端展示验证：临时插入一对「不同来源、同一事件」测试数据（期号 2099-01-01）→
@@ -426,7 +427,8 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
   验证后测试数据已删除，首页恢复 2026-10-21 期。
 - `tsc --noEmit`、`npm run lint`、`npm run build` 均通过。
 - 本次实跑遭遇 glm-4.7-flash 连续 429/超时，降级到 glm-4-flash 后仍有 1 批失败（50/64 条有 AI 加工）；
-  已用 `npm run backfill -- --local` 补齐，历史摘要由 COALESCE 保护，未被覆盖。
+  已用 `npm run backfill -- --local`（本地）与 `npm run backfill`（云端）补齐，两边均 0 条缺失；
+  再用 `node brief.mjs --html-only` 重渲染静态页，64/64 条均有中文摘要。历史摘要由 COALESCE 保护，未被覆盖。
 
 ### 已知边界
 

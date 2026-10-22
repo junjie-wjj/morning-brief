@@ -656,17 +656,21 @@ function groupOrderFor(items) {
   return [...TAG_ORDER, ...unknown];
 }
 
+/** 多源去重：主条目下方挂上同一事件的其他报道 */
+function renderRelated(it) {
+  return Array.isArray(it.related) && it.related.length
+    ? `<p class="related">相关报道：${it.related
+      .map((r) => `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">${escapeHtml(r.source)}</a>`)
+      .join('、')}</p>`
+    : '';
+}
+
 function renderAiItem(it) {
   const when = isToday(it.date) ? '<span class="new">今天</span>' : escapeHtml(relDate(it.date));
   const meta = [escapeHtml(it.source), when].filter(Boolean).join(' · ');
   // 原文精简版：默认折叠，点开就地读，不必跳转到原站
   const pts = renderPoints(it);
-  // 多源去重：主条目下方挂上同一事件的其他报道
-  const related = Array.isArray(it.related) && it.related.length
-    ? `<p class="related">相关报道：${it.related
-      .map((r) => `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">${escapeHtml(r.source)}</a>`)
-      .join('、')}</p>`
-    : '';
+  const related = renderRelated(it);
   if (!it.en) {
     return `<li>
       <a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a>
@@ -761,6 +765,7 @@ function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
     <p class="summary">${escapeHtml(it.en.summary)}</p>
     <span class="meta">${[escapeHtml(it.source), isToday(it.date) ? '<span class="new">今天</span>' : escapeHtml(relDate(it.date))].filter(Boolean).join(' · ')}</span>
     ${renderPoints(it)}
+    ${renderRelated(it)}
   </div>`;
 
   const mustHtml = must.length
@@ -788,7 +793,101 @@ ${groups}
 ${filteredHtml}`;
 }
 
+/** 页面外壳：正常生成与 --html-only 重渲染共用，避免模板分叉 */
+function renderHtml({ generatedAt, sub, body }) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>信息早餐 · ${escapeHtml(generatedAt)}</title>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
+         max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; color: #1f2328; line-height: 1.6; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: #6b7280; font-size: .9rem; margin: 0 0 16px; }
+  .banner { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px;
+            padding: 8px 12px; font-size: .85rem; }
+  section.source { margin: 24px 0; }
+  h2 { font-size: 1.05rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin: 0 0 8px; }
+  .count { color: #6b7280; font-weight: normal; font-size: .85rem; margin-left: 6px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { margin: 10px 0; }
+  a { color: #1f2328; text-decoration: none; }
+  a:hover { color: #2563eb; text-decoration: underline; }
+  .meta { display: block; color: #9ca3af; font-size: .8rem; }
+  .new { color: #d97706; font-weight: 600; }
+  .health { color: #b45309; font-size: .85rem; }
+  .card { border: 1px solid #e5e7eb; border-left: 3px solid #d97706; border-radius: 10px;
+          padding: 10px 14px; margin: 12px 0; }
+  .card a { font-weight: 600; font-size: 1.02rem; }
+  .tag { display: inline-block; background: #eef2ff; color: #4338ca; font-size: .75rem;
+         padding: 1px 8px; border-radius: 99px; margin-left: 6px; vertical-align: middle; }
+  .summary { margin: 6px 0 4px; font-size: .92rem; color: #374151; }
+  .products h3 { margin: 16px 0 4px; font-size: .95rem; color: #374151;
+                 border-left: 3px solid #6366f1; padding-left: 8px; }
+  .products ul { margin-top: 4px; }
+  details.filtered { margin: 24px 0; color: #6b7280; font-size: .88rem; }
+  details.filtered summary { cursor: pointer; }
+  details.ppts { margin: 8px 0 2px; border: 1px solid #e5e7eb; border-radius: 8px;
+                 padding: 6px 10px; background: #fafafa; }
+  details.ppts summary { cursor: pointer; font-size: .85rem; color: #4338ca; }
+  .ppts-line { margin: 6px 0 0; font-size: .9rem; color: #374151; line-height: 1.65; }
+  .ppts-note { margin: 6px 0 0; font-size: .78rem; color: #b45309; }
+  .ppts-meta { margin: 6px 0 0; font-size: .75rem; color: #9ca3af; }
+  .related { margin: 6px 0 0; font-size: .78rem; color: #6b7280; }
+  .related a { color: #4338ca; text-decoration: underline; }
+  footer { margin-top: 40px; color: #9ca3af; font-size: .8rem; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+</style>
+</head>
+<body>
+<h1>信息早餐</h1>
+<p class="sub">${sub}</p>
+${body}
+<footer>
+  morning-brief —— 只抓取官方 API / 开放协议；AI 摘要仅供导读，点击条目可跳转原文。
+</footer>
+</body>
+</html>`;
+}
+
+/**
+ * 只根据 docs/data.json 重渲染静态页，不重新抓取、不调用 LLM。
+ * 用途：回填过摘要/精简版之后，让 GitHub Pages 的静态页同步更新。
+ */
+async function renderFromData() {
+  const { readFileSync, mkdirSync, writeFileSync } = await import('node:fs');
+  const data = JSON.parse(readFileSync('docs/data.json', 'utf8'));
+  const flat = data.items.map((it) => ({ ...it, date: it.date ? new Date(it.date) : null }));
+  const enriched = new Map(flat
+    .filter((it) => it.zh)
+    .map((it) => [it.link, { zh: it.zh, summary: it.summary, tag: it.tag, score: it.score }]));
+  const pointsMap = new Map(flat
+    .filter((it) => it.points)
+    .map((it) => [it.link, {
+      points: it.points,
+      bodyReason: it.pointsReason,
+      bodyChars: it.bodyChars,
+      bodyVia: it.bodyVia,
+    }]));
+  const body = renderAiPage(flat, enriched, { failedNote: '', pointsMap });
+  const generatedAt = new Date(data.generatedAt).toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', hour12: false,
+  });
+  const total = flat.filter((it) => !it.dupOf).length;
+  const sub = `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${total} 条 · 摘要与打分由 AI 生成，仅供导读，以原文为准`;
+  mkdirSync('docs', { recursive: true });
+  writeFileSync('docs/index.html', renderHtml({ generatedAt, sub, body }));
+  console.log(`已从 docs/data.json 重渲染 docs/index.html（共 ${total} 条）`);
+}
+
 async function main() {
+  if (process.argv.includes('--html-only')) {
+    await renderFromData();
+    return;
+  }
   const results = await Promise.all(SOURCES.map(fetchSource));
   const okResults = results.filter((r) => r.status === 'ok');
   const failedCount = results.length - okResults.length;
@@ -858,61 +957,7 @@ async function main() {
     ? `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${flat.length} 条 · 摘要与打分由 ${escapeHtml(activeModel)} 生成，仅供导读，以原文为准`
     : `生成于 ${escapeHtml(generatedAt)}（北京时间） · 共 ${total} 条 · 原始抓取（无 AI 加工）`;
 
-  const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>信息早餐 · ${escapeHtml(generatedAt)}</title>
-<style>
-  :root { color-scheme: light; }
-  body { font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
-         max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; color: #1f2328; line-height: 1.6; }
-  h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  .sub { color: #6b7280; font-size: .9rem; margin: 0 0 16px; }
-  .banner { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px;
-            padding: 8px 12px; font-size: .85rem; }
-  section.source { margin: 24px 0; }
-  h2 { font-size: 1.05rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin: 0 0 8px; }
-  .count { color: #6b7280; font-weight: normal; font-size: .85rem; margin-left: 6px; }
-  ul { list-style: none; margin: 0; padding: 0; }
-  li { margin: 10px 0; }
-  a { color: #1f2328; text-decoration: none; }
-  a:hover { color: #2563eb; text-decoration: underline; }
-  .meta { display: block; color: #9ca3af; font-size: .8rem; }
-  .new { color: #d97706; font-weight: 600; }
-  .health { color: #b45309; font-size: .85rem; }
-  .card { border: 1px solid #e5e7eb; border-left: 3px solid #d97706; border-radius: 10px;
-          padding: 10px 14px; margin: 12px 0; }
-  .card a { font-weight: 600; font-size: 1.02rem; }
-  .tag { display: inline-block; background: #eef2ff; color: #4338ca; font-size: .75rem;
-         padding: 1px 8px; border-radius: 99px; margin-left: 6px; vertical-align: middle; }
-  .summary { margin: 6px 0 4px; font-size: .92rem; color: #374151; }
-  .products h3 { margin: 16px 0 4px; font-size: .95rem; color: #374151;
-                 border-left: 3px solid #6366f1; padding-left: 8px; }
-  .products ul { margin-top: 4px; }
-  details.filtered { margin: 24px 0; color: #6b7280; font-size: .88rem; }
-  details.filtered summary { cursor: pointer; }
-  details.ppts { margin: 8px 0 2px; border: 1px solid #e5e7eb; border-radius: 8px;
-                 padding: 6px 10px; background: #fafafa; }
-  details.ppts summary { cursor: pointer; font-size: .85rem; color: #4338ca; }
-  .ppts-line { margin: 6px 0 0; font-size: .9rem; color: #374151; line-height: 1.65; }
-  .ppts-note { margin: 6px 0 0; font-size: .78rem; color: #b45309; }
-  .ppts-meta { margin: 6px 0 0; font-size: .75rem; color: #9ca3af; }
-  .related { margin: 6px 0 0; font-size: .78rem; color: #6b7280; }
-  .related a { color: #4338ca; text-decoration: underline; }
-  footer { margin-top: 40px; color: #9ca3af; font-size: .8rem; border-top: 1px solid #e5e7eb; padding-top: 12px; }
-</style>
-</head>
-<body>
-<h1>信息早餐</h1>
-<p class="sub">${sub}</p>
-${body}
-<footer>
-  morning-brief —— 只抓取官方 API / 开放协议；AI 摘要仅供导读，点击条目可跳转原文。
-</footer>
-</body>
-</html>`;
+  const html = renderHtml({ generatedAt, sub, body });
 
   const { mkdirSync, writeFileSync } = await import('node:fs');
   mkdirSync('docs', { recursive: true });
