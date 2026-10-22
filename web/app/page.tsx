@@ -76,7 +76,10 @@ export default async function Home() {
       related={parseRelated(it.related)}
     />
   );
-  const unreadCount = items.filter((it) => it.status === "unread").length;
+  // 统计口径与页面一致：可见条目 + 折叠区低分条目 + 产品条目。
+  // 之前的 bug：未读数把被筛选隐藏的条目也数进去，出现「共 63 条但未读 68 条」
+  const displayed = [...newsVisible, ...lowScore, ...productItems];
+  const unreadCount = displayed.filter((it) => it.status === "unread").length;
   const isFiltered = settings.minScore !== 3 || settings.unreadOnly || settings.hideDownvoted
     || settings.blockedKeywords.length > 0 || settings.tags || settings.sources || settings.products;
 
