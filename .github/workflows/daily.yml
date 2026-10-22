@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 23 * * *'   # UTC 23:00 = 北京时间早上 07:00（GitHub 定时可能有十几分钟延迟）
   workflow_dispatch:        # 允许在 Actions 页面手动触发
+    inputs:
+      skip_points:
+        description: '跳过原文精简版（快速验证整条管线）'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -37,6 +42,7 @@ jobs:
       - run: node brief.mjs
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          POINTS_ENABLED: ${{ inputs.skip_points && '0' || '1' }}
       - name: 同步最新数据到云端应用数据库（Turso）
         continue-on-error: true   # 即使这步失败，静态简报照常发布
         run: npm run seed:cloud

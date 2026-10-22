@@ -89,6 +89,13 @@ const POINTS_MIN_SCORE = Number(process.env.POINTS_MIN_SCORE ?? 4);
 const POINTS_MAX_ITEMS = Number(process.env.POINTS_MAX_ITEMS ?? 15);
 const POINTS_CONCURRENCY = Number(process.env.POINTS_CONCURRENCY ?? 3);
 const POINTS_CHUNK_CHARS = Number(process.env.POINTS_CHUNK_CHARS ?? 2000);
+// 运行上限：LLM 限流时单条可能反复重试，必须给整块和单条都设上限，
+// 否则一次定时任务可能跑几十分钟甚至更久。
+const POINTS_DEADLINE_MS = Number(process.env.POINTS_DEADLINE_MS ?? 10 * 60_000);
+const POINTS_ITEM_TIMEOUT_MS = Number(process.env.POINTS_ITEM_TIMEOUT_MS ?? 3 * 60_000);
+// 整条管线的总时长上限：抓取 + AI 加工 + 去重 + 精简版。
+// 达到上限后按阶段跳过剩余工作，保证每日任务不会因限流跑到几十分钟以上。
+const PIPELINE_DEADLINE_MS = Number(process.env.PIPELINE_DEADLINE_MS ?? 25 * 60_000);
 
 // ---------- 小工具 ----------
 
@@ -322,12 +329,16 @@ async function enrichBatch(chunk) {
   return out;
 }
 
-async function enrichWithLLM(items) {
+async function enrichWithLLM(items, deadline = Infinity) {
   const merged = new Map();
   const failed = [];
   // 分批加工；单批失败不再拖垮全局——已加工成功的批次照常保留，
   // 只有全部批次都失败才降级为原始抓取（否则一次限流就丢掉当天全部摘要）。
   for (let i = 0; i < items.length; i += 40) {
+    if (Date.now() > deadline) {
+      console.warn(`⚠ AI 加工达到总时长上限，剩余 ${items.length - i} 条本次未加工`);
+      break;
+    }
     const chunk = items.slice(i, i + 40);
     try {
       const part = await enrichBatch(chunk);
@@ -348,7 +359,7 @@ async function enrichWithLLM(items) {
 /** 让 LLM 找出同一事件的分组，再用纯逻辑合并；单批失败只影响该批。
  *  enriched 必须传入：去重提示词要用中文标题/摘要，主条目选择要用兴趣分。
  *  在这里统一挂上，避免调用方漏传导致"所有条目 score 都是 0、只看英文标题"。 */
-async function dedupeNews(items, enriched, chatFn = chatWithFallback) {
+async function dedupeNews(items, enriched, chatFn = chatWithFallback, deadline = Infinity) {
   const news = items
     .filter((it) => !it.product)
     .map((it) => ({ ...it, en: enriched.get(it.link) }));
@@ -357,6 +368,10 @@ async function dedupeNews(items, enriched, chatFn = chatWithFallback) {
 
   const rawGroups = [];
   for (let i = 0; i < news.length; i += 40) {
+    if (Date.now() > deadline) {
+      console.warn(`⚠ 多源去重达到总时长上限，剩余 ${news.length - i} 条本次不参与去重`);
+      break;
+    }
     const chunk = news.slice(i, i + 40);
     try {
       const content = await chatFn([
@@ -445,10 +460,22 @@ async function buildPoints(item) {
 }
 
 /**
+ * 给单条精简版加超时：LLM 限流时 buildPoints 可能长时间重试，
+ * 不能让一条拖住整批。超时后按失败处理，页面会标注原因。
+ */
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}超过 ${Math.round(ms / 1000)}s`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
  * 为高分条目批量生成精简版。
  * 返回 Map<link, points 信息>；整体失败不影响主流程（摘要与静态页照常输出）。
  */
-async function buildAllPoints(items) {
+async function buildAllPoints(items, pipelineDeadline = Infinity) {
   const targets = items
     .filter((it) => !it.product && !it.dupOf && (it.en?.score ?? 0) >= POINTS_MIN_SCORE)
     .slice(0, POINTS_MAX_ITEMS);
@@ -458,11 +485,19 @@ async function buildAllPoints(items) {
   const out = new Map();
   let done = 0;
   let failed = 0;
+  const deadline = Math.min(Date.now() + POINTS_DEADLINE_MS, pipelineDeadline);
 
   // 限并发：既压住限流，也不至于串行跑太久
   for (let i = 0; i < targets.length; i += POINTS_CONCURRENCY) {
+    if (Date.now() > deadline) {
+      const skipped = targets.length - i;
+      console.warn(`⚠ 原文精简版达到 ${Math.round(POINTS_DEADLINE_MS / 60_000)} 分钟上限，剩余 ${skipped} 条本次跳过`);
+      break;
+    }
     const batch = targets.slice(i, i + POINTS_CONCURRENCY);
-    const results = await Promise.allSettled(batch.map(buildPoints));
+    const results = await Promise.allSettled(
+      batch.map((it) => withTimeout(buildPoints(it), POINTS_ITEM_TIMEOUT_MS, '单条精简版')),
+    );
     results.forEach((r, k) => {
       const it = batch[k];
       if (r.status === 'fulfilled') {
@@ -958,6 +993,7 @@ async function main() {
 
   // 偏好搜索（简单版）：反馈 → 产品名/分类短语 → 额外搜索词。
   // 没有反馈文件、或净赞不够时，完全不影响原有抓取。
+  const pipelineDeadline = Date.now() + PIPELINE_DEADLINE_MS;
   const prefStats = loadPreferenceStats();
   const prefTerms = prefStats ? selectSearchTerms(prefStats) : [];
   if (prefStats?.feedbackCount) {
@@ -1010,7 +1046,7 @@ async function main() {
   if (!LLM_API_KEY) aiNote = '未配置 LLM_API_KEY，本次展示原始抓取（配置方法见 README）';
   else if (flat.length) {
     try {
-      enriched = await enrichWithLLM(flat);
+      enriched = await enrichWithLLM(flat, pipelineDeadline);
     } catch (err) {
       aiNote = `AI 加工失败（${err.message}），本次展示原始抓取`;
     }
@@ -1018,24 +1054,28 @@ async function main() {
 
   // 多源去重：同一事件的多篇报道合并成一条（依赖 AI 摘要与评分，降级模式跳过）
   let dedupOk = false;
-  if (enriched) {
+  if (enriched && Date.now() < pipelineDeadline) {
     try {
-      flat = await dedupeNews(flat, enriched);
+      flat = await dedupeNews(flat, enriched, chatWithFallback, pipelineDeadline);
       total = flat.filter((it) => !it.dupOf).length;
       dedupOk = true;
     } catch (err) {
       console.warn(`⚠ 多源去重整体失败（${err.message}），本次不合并`);
     }
+  } else if (enriched) {
+    console.warn('⚠ 已达到总时长上限，本次跳过多源去重（保留库里已有的去重结果）');
   }
 
   // 原文精简版：只对已加工的高分资讯做（产品更新没有正文，跳过）；失败不影响摘要与静态页
   let pointsMap = new Map();
-  if (enriched && POINTS_ENABLED) {
+  if (enriched && POINTS_ENABLED && Date.now() < pipelineDeadline) {
     try {
-      pointsMap = await buildAllPoints(flat);
+      pointsMap = await buildAllPoints(flat, pipelineDeadline);
     } catch (err) {
       console.warn(`⚠ 原文精简版整体失败（${err.message}），本次不输出要点`);
     }
+  } else if (enriched && POINTS_ENABLED) {
+    console.warn('⚠ 已达到总时长上限，本次跳过原文精简版（保留库里已有内容）');
   }
 
   const aiBanner = aiNote ? `<p class="banner">ℹ ${aiNote}</p>` : '';

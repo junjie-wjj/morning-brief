@@ -585,3 +585,18 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 - **数据备份**：Turso 只有一份数据，建议加每周导出 workflow。
 - **历史页搜索、PWA、标记全部已读、抓取源健康面板**：都是可选增强。
 - **静态页 UI 仍是旧样式**：Web 应用已改版，`docs/index.html` 仍是简单样式；需要的话可以移植。
+
+## 管线运行上限（2026-10-22 验证时发现）
+
+**问题**：手动触发 `daily-brief` 做全链路验证时，`node brief.mjs` 在 LLM 限流下跑了 40 分钟仍未结束，
+只能取消。精简版每条要抓正文 + 分段抽取，限流时单条会反复重试，没有上限就会拖住整个定时任务。
+
+**修复**：
+- `PIPELINE_DEADLINE_MS`（默认 25 分钟）：整条管线总上限，达到后按阶段跳过剩余工作。
+- `POINTS_DEADLINE_MS`（默认 10 分钟）：精简版整块上限。
+- `POINTS_ITEM_TIMEOUT_MS`（默认 3 分钟）：单条精简版上限，超时按失败记录原因。
+- 跳过时的数据安全：AI 加工保留已成功批次；去重跳过时 `deduped=false`，seed 保留旧 `dup_of`；
+  精简版跳过时 points 为 null，seed 的 COALESCE/元数据保护保留旧内容。
+- `daily.yml` 的 `workflow_dispatch` 增加 `skip_points` 开关，用于快速验证抓取/加工/去重/入库链路。
+
+**验证**：取消旧运行后重新触发（`skip_points=true`），确认整条链路在合理时间内完成。
