@@ -1140,6 +1140,12 @@ async function main() {
     console.log(`✗ ${aiNote}`);
   }
   console.log(`\n已生成 docs/index.html（共 ${total} 条）。用浏览器打开即可阅读。`);
+
+  // 超时的条目在后台仍可能继续 LLM 重试：Promise.race 只能让主流程不再等，
+  // 无法取消底层的 fetch。不主动退出的话，Node 会等这些孤儿请求跑完，
+  // 一次定时任务可能因此多花几十分钟。所有输出都是同步写完的，这里可以安全退出。
+  await new Promise((resolve) => process.stdout.write('', resolve));
+  process.exit(0);
 }
 
 // 只在「直接运行本文件」时执行主流程；被 import 时（例如测试）不自动跑。
