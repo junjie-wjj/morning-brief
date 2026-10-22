@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getFeedback, getPreferenceStats, getSettings, queryItems, type ItemRow } from "@/lib/db";
 import { groupOrderFor } from "@/lib/grouping";
 import { passesFilters, isBelowMinScore, rankScore, sortByRank, type FilterContext } from "@/lib/filters";
+import { parseRelated } from "@/lib/related";
 import ItemCard from "./components/ItemCard";
 
 // 每次请求实时读数据库再渲染（经典 SSR 模式）
@@ -11,9 +12,11 @@ export default async function Home() {
   // 只展示最新一期：避免首页被上线以来的全部历史条目淹没。
   // 没有期号的老数据（迁移前的库）退回展示全部，避免页面空白。
   const latestIssue = (await queryItems("SELECT MAX(issue) AS issue FROM items"))[0]?.issue ?? null;
-  const items = latestIssue
+  const rawItems = latestIssue
     ? await queryItems("SELECT * FROM items WHERE issue = ? ORDER BY score DESC, date DESC, id DESC", latestIssue)
     : await queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
+  // 被多源去重合并的报道不再单独展示（主条目下方有「相关报道」链接）
+  const items = rawItems.filter((it) => !it.dup_of);
 
   // 筛选偏好 + 用户反馈（👍/👎 会影响排序与显示）
   const [settings, feedback, stats] = await Promise.all([
@@ -47,7 +50,12 @@ export default async function Home() {
     .sort((a, b) => ((b.list[0]?.date ?? "") > (a.list[0]?.date ?? "") ? 1 : -1));
 
   const card = (it: ItemRow) => (
-    <ItemCard key={it.id} item={it} verdict={feedback.get(it.link) ?? null} />
+    <ItemCard
+      key={it.id}
+      item={it}
+      verdict={feedback.get(it.link) ?? null}
+      related={parseRelated(it.related)}
+    />
   );
 
   return (

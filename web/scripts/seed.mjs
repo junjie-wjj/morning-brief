@@ -34,7 +34,9 @@ await db.execute(`CREATE TABLE IF NOT EXISTS items (
   score INTEGER,
   status TEXT NOT NULL DEFAULT 'unread',
   product TEXT,
-  issue TEXT
+  issue TEXT,
+  dup_of TEXT,
+  related TEXT
 )`);
 
 // 迁移：给已存在的表补上「原文精简版」相关列。
@@ -47,6 +49,8 @@ const NEW_COLUMNS = [
   ['body_via', 'TEXT'],          // 正文来源：direct / reddit-rss / jina
   ['product', 'TEXT'],           // 产品追踪：非空表示该产品的第一手更新
   ['issue', 'TEXT'],             // 期号（北京时间日期）：首页只展示最新一期
+  ['dup_of', 'TEXT'],            // 多源去重：被合并进的主条目链接
+  ['related', 'TEXT'],           // 多源去重：主条目挂的其他报道（JSON）
 ];
 const existing = new Set(
   (await db.execute('PRAGMA table_info(items)')).rows.map((r) => r.name),
@@ -62,9 +66,11 @@ for (const [name, type] of NEW_COLUMNS) {
 //   2. AI 加工列（zh_title/summary/tag/score/points）—— LLM 加工失败时 brief.mjs 会降级
 //      输出原始抓取，这几个字段全是 null。若照写就会把库里已有的中文摘要覆盖成空，
 //      即"一次限流抹掉全部历史摘要"。用 COALESCE 逐列保留：新值非 null 才覆盖。
+// 去重列（dup_of/related）例外：每次运行都重新计算，必须原样覆盖。若用 COALESCE，
+// 某次误判为重复的条目会永远隐藏，之后即使不再重复也无法恢复。
 const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary, tag, score,
-    points, points_reason, body_chars, body_via, product, issue)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    points, points_reason, body_chars, body_via, product, issue, dup_of, related)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(link) DO UPDATE SET
     date = excluded.date, source = excluded.source, title = excluded.title,
     zh_title = COALESCE(excluded.zh_title, items.zh_title),
@@ -76,7 +82,9 @@ const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary,
     body_chars = COALESCE(excluded.body_chars, items.body_chars),
     body_via   = COALESCE(excluded.body_via,   items.body_via),
     product    = COALESCE(excluded.product,    items.product),
-    issue      = COALESCE(excluded.issue,      items.issue)`;
+    issue      = COALESCE(excluded.issue,      items.issue),
+    dup_of     = excluded.dup_of,
+    related    = excluded.related`;
 
 let n = 0;
 let withPoints = 0;
@@ -88,7 +96,8 @@ for (const it of data.items) {
       it.zh, it.summary, it.tag, it.score,
       it.points ?? null, it.pointsReason ?? null,
       it.bodyChars ?? null, it.bodyVia ?? null,
-      it.product ?? null, it.issue ?? data.issue ?? null],
+      it.product ?? null, it.issue ?? data.issue ?? null,
+      it.dupOf ?? null, it.related ? JSON.stringify(it.related) : null],
   });
   n++;
 }

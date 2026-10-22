@@ -8,9 +8,11 @@ import type { ItemRow } from "@/lib/db";
 export default function ItemCard({
   item,
   verdict = null,
+  related = [],
 }: {
   item: ItemRow;
   verdict?: "up" | "down" | null;
+  related?: { title: string; link: string; source: string }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -89,6 +91,25 @@ export default function ItemCard({
       )}
 
       {item.summary && <p className="mt-1 text-sm leading-6 text-zinc-600">{item.summary}</p>}
+
+      {related.length > 0 && (
+        <p className="mt-1 text-xs text-zinc-500" onClick={(e) => e.stopPropagation()}>
+          相关报道：
+          {related.map((r, i) => (
+            <span key={r.link}>
+              {i > 0 && "、"}
+              <a
+                href={r.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-indigo-600"
+              >
+                {r.source}
+              </a>
+            </span>
+          ))}
+        </p>
+      )}
 
       {hasPoints && (
         <p className="mt-1 text-xs text-indigo-500">

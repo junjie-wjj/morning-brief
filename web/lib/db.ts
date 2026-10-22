@@ -45,6 +45,10 @@ export interface ItemRow {
   product: string | null;
   // 期号（北京时间日期，如 2026-10-21）：首页只展示最新一期，历史在 /archive
   issue: string | null;
+  // 多源去重：dup_of 非空表示这条被合并进主条目（页面上隐藏）；
+  // related 是主条目挂的其他报道（JSON 数组：{title, link, source}）
+  dup_of: string | null;
+  related: string | null;
 }
 
 let client: Client | null = null;
@@ -82,7 +86,9 @@ function initSchema(): Promise<unknown> {
       body_chars INTEGER,
       body_via TEXT,
       product TEXT,
-      issue TEXT
+      issue TEXT,
+      dup_of TEXT,
+      related TEXT
     )`);
 
     // 旧库补列：SQLite 的 ALTER TABLE ADD COLUMN 对已存在的列会报错，
@@ -97,6 +103,8 @@ function initSchema(): Promise<unknown> {
       ["body_via", "TEXT"],
       ["product", "TEXT"],
       ["issue", "TEXT"],
+      ["dup_of", "TEXT"],
+      ["related", "TEXT"],
     ];
     for (const [name, type] of cols) {
       if (existing.has(name)) continue;

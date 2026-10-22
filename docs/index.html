@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>信息早餐 · 2026/10/15 10:41</title>
+<title>信息早餐 · 2026/10/21 23:59</title>
 <style>
   :root { color-scheme: light; }
   body { font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -28,229 +28,541 @@
   .tag { display: inline-block; background: #eef2ff; color: #4338ca; font-size: .75rem;
          padding: 1px 8px; border-radius: 99px; margin-left: 6px; vertical-align: middle; }
   .summary { margin: 6px 0 4px; font-size: .92rem; color: #374151; }
+  .products h3 { margin: 16px 0 4px; font-size: .95rem; color: #374151;
+                 border-left: 3px solid #6366f1; padding-left: 8px; }
+  .products ul { margin-top: 4px; }
   details.filtered { margin: 24px 0; color: #6b7280; font-size: .88rem; }
   details.filtered summary { cursor: pointer; }
+  details.ppts { margin: 8px 0 2px; border: 1px solid #e5e7eb; border-radius: 8px;
+                 padding: 6px 10px; background: #fafafa; }
+  details.ppts summary { cursor: pointer; font-size: .85rem; color: #4338ca; }
+  .ppts-line { margin: 6px 0 0; font-size: .9rem; color: #374151; line-height: 1.65; }
+  .ppts-note { margin: 6px 0 0; font-size: .78rem; color: #b45309; }
+  .ppts-meta { margin: 6px 0 0; font-size: .75rem; color: #9ca3af; }
+  .related { margin: 6px 0 0; font-size: .78rem; color: #6b7280; }
+  .related a { color: #4338ca; text-decoration: underline; }
   footer { margin-top: 40px; color: #9ca3af; font-size: .8rem; border-top: 1px solid #e5e7eb; padding-top: 12px; }
 </style>
 </head>
 <body>
 <h1>信息早餐</h1>
-<p class="sub">生成于 2026/10/15 10:41（北京时间） · 共 44 条 · 摘要与打分由 glm-4.7-flash 生成，仅供导读，以原文为准</p>
-<p class="banner">⚠ 1 个源本次抓取失败（见各栏目提示），其余内容正常。</p>
+<p class="sub">生成于 2026/10/21 23:59（北京时间） · 共 64 条 · 摘要与打分由 glm-4-flash 生成，仅供导读，以原文为准</p>
+
 <section class="source"><h2>今日必读 <span class="count">按兴趣分排序</span></h2><div class="card">
-    <a href="https://techcrunch.com/2026/10/14/youtube-music-launches-new-labels-as-ai-generated-music-floods-streaming-platforms/" target="_blank" rel="noopener">YouTube Music推出新标签，AI生成音乐涌入流媒体平台</a>
-    <span class="tag">行业动态 · 4 分</span>
-    <p class="summary">YouTube Music推出新音乐标签，AI生成音乐在流媒体平台流行，值得关注。</p>
-    <span class="meta">TechCrunch · AI 新闻 · <span class="new">今天</span></span>
-  </div>
-<div class="card">
-    <a href="https://techcrunch.com/2026/10/14/apate-sends-ai-agents-undercover-to-get-scammed-so-they-can-gather-fraud-intelligence/" target="_blank" rel="noopener">Apate用AI代理进行诈骗以收集欺诈情报</a>
-    <span class="tag">研究进展 · 4 分</span>
-    <p class="summary">Apate公司使用AI代理进行诈骗以收集欺诈情报，值得关注。</p>
-    <span class="meta">TechCrunch · AI 新闻 · <span class="new">今天</span></span>
-  </div>
-<div class="card">
-    <a href="https://openai.com/index/amp-beyond-coding" target="_blank" rel="noopener">OpenAI 模型赋能 AI 代理工作</a>
+    <a href="https://www.reddit.com/r/LocalLLaMA/comments/1xbqik0/recursivesiflint_40b_a25b_hugging_face/" target="_blank" rel="noopener">RecursiveSI/flint模型发布</a>
     <span class="tag">模型发布 · 4 分</span>
-    <p class="summary">OpenAI 模型被用于代码之外的AI代理工作，提高效率。</p>
-    <span class="meta">OpenAI · 官方新闻 · 昨天</span>
+    <p class="summary">RecursiveSI/flint（40B A2.5B）模型在Hugging Face发布。</p>
+    <span class="meta">r/LocalLLaMA · 社区热帖 · 昨天</span>
+    
+  </div>
+<div class="card">
+    <a href="https://www.reddit.com/r/LocalLLaMA/comments/1xbmsgf/35b_moe_running_at_205_toks_on_an_iphone_without/" target="_blank" rel="noopener">iPhone运行35B MoE模型</a>
+    <span class="tag">产品动态 · 4 分</span>
+    <p class="summary">iPhone运行35B MoE模型，每秒20.5个token，无跳过专家。</p>
+    <span class="meta">r/LocalLLaMA · 社区热帖 · 昨天</span>
+    
+  </div>
+<div class="card">
+    <a href="https://huggingface.co/blog/nvidia/kumo-forecast" target="_blank" rel="noopener">NVIDIA Kumo Forecast发布</a>
+    <span class="tag">模型发布 · 4 分</span>
+    <p class="summary">NVIDIA发布Kumo Forecast，结合预训练时间序列表示和模式检索，提升可解释性。</p>
+    <span class="meta">Hugging Face · 官方博客 · 昨天</span>
+    
   </div></section>
-<section class="source"><h2>产品动态 <span class="count">6 条</span></h2>
+<section class="source products"><h2>产品追踪 <span class="count">12 个产品 · 第一手发布</span></h2><div class="product">
+      <h3>DeepSeek</h3>
       <ul><li>
-    <a href="https://openai.com/index/sentinelone" target="_blank" rel="noopener">SentinelOne 缩短恶意软件分析时间</a>
-    <span class="tag">产品动态</span>
-    <p class="summary">SentinelOne 利用 AI 技术将恶意软件分析时间从周级缩短至小时级，提升安全响应速度。</p>
-    <span class="meta">OpenAI · 官方新闻 · 昨天 · 原标题：SentinelOne cuts malware analysis from weeks to hours</span>
+    <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017" target="_blank" rel="noopener">DeepSeek-V4.1-Flash-1017发布</a>
+    <span class="tag">模型发布</span>
+    <p class="summary">DeepSeek发布新模型，提升图像识别能力，值得关注。</p>
+    <span class="meta">DeepSeek · Hugging Face · 5 天前 · 原标题：新模型 deepseek-ai/DeepSeek-V4.1-Flash-1017</span>
+    
+    
   </li>
 <li>
-    <a href="https://openai.com/index/block-ai-powered-security" target="_blank" rel="noopener">Block 构建 AI 安全解决方案</a>
-    <span class="tag">产品动态</span>
-    <p class="summary">Block 利用 OpenAI 技术构建 AI 安全解决方案，提升网络安全能力。</p>
-    <span class="meta">OpenAI · 官方新闻 · 昨天 · 原标题：How Block is building AI-powered security with OpenAI technology</span>
+    <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash" target="_blank" rel="noopener">DeepSeek-V4.1-Flash发布</a>
+    <span class="tag">模型发布</span>
+    <p class="summary">DeepSeek发布新模型，增强图像处理能力，值得关注。</p>
+    <span class="meta">DeepSeek · Hugging Face · 6 天前 · 原标题：新模型 deepseek-ai/DeepSeek-V4.1-Flash</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>智谱 GLM</h3>
+      <ul><li>
+    <a href="https://huggingface.co/zai-org/GLM-5.3-Flash" target="_blank" rel="noopener">GLM-5.3-Flash发布</a>
+    <span class="tag">模型发布</span>
+    <p class="summary">智谱GLM发布新模型，强化语言理解能力，值得关注。</p>
+    <span class="meta">智谱 GLM · Hugging Face · 7 天前 · 原标题：新模型 zai-org/GLM-5.3-Flash</span>
+    
+    
   </li>
 <li>
-    <a href="https://deepmind.google/blog/gemini-4-argon-for-robotics/" target="_blank" rel="noopener">Gemini 4 Argon 用于机器人领域</a>
+    <a href="https://huggingface.co/zai-org/GLM-5.3" target="_blank" rel="noopener">GLM-5.3发布</a>
+    <span class="tag">模型发布</span>
+    <p class="summary">智谱GLM发布新模型，提升语言生成效果，值得关注。</p>
+    <span class="meta">智谱 GLM · Hugging Face · 8 天前 · 原标题：新模型 zai-org/GLM-5.3</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>Kimi</h3>
+      <ul><li>
+    <a href="https://github.com/MoonshotAI/kimi-code/releases/tag/%40moonshot-ai%2Fkimi-code%402.3.0" target="_blank" rel="noopener">kimi-code@2.3.0发布</a>
     <span class="tag">产品动态</span>
-    <p class="summary">Google DeepMind 探索 Gemini 4 Argon 模型在机器人领域的应用潜力。</p>
-    <span class="meta">Google DeepMind · 官方博客 · 昨天 · 原标题：Gemini 4 Argon for Robotics</span>
+    <p class="summary">Kimi发布新版本，增强代码生成能力，值得关注。</p>
+    <span class="meta">Kimi · GitHub 发布 · 昨天 · 原标题：kimi-code @moonshot-ai/kimi-code@2.3.0</span>
+    
+    
   </li>
 <li>
-    <a href="https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.3" target="_blank" rel="noopener">DeepSeek 发布 deepseek-harness v0.2.1-alpha.3</a>
+    <a href="https://github.com/MoonshotAI/kimi-code/releases/tag/%40moonshot-ai%2Fkimi-code%402.2.0" target="_blank" rel="noopener">kimi-code@2.2.0发布</a>
     <span class="tag">产品动态</span>
-    <p class="summary">DeepSeek 发布了新的 deepseek-harness 版本，增强工具功能。</p>
-    <span class="meta">DeepSeek · GitHub 发布 · 昨天 · 原标题：deepseek-harness v0.2.1-alpha.3</span>
+    <p class="summary">Kimi发布新版本，优化代码生成体验，值得关注。</p>
+    <span class="meta">Kimi · GitHub 发布 · 8 天前 · 原标题：kimi-code @moonshot-ai/kimi-code@2.2.0</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>Qwen</h3>
+      <ul><li>
+    <a href="https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo" target="_blank" rel="noopener">Qwen-Image-2.1-Turbo发布</a>
+    <span class="tag">模型发布</span>
+    <p class="summary">Qwen发布新模型，提升图像处理速度，值得关注。</p>
+    <span class="meta">Qwen · Hugging Face · 10 天前 · 原标题：新模型 Qwen/Qwen-Image-2.1-Turbo</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>MiniMax</h3>
+      <ul><li>
+    <a href="https://github.com/MiniMax-AI/OpenAgentCore/releases/tag/v0.0.12" target="_blank" rel="noopener">OpenAgentCore v0.0.12发布</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">MiniMax发布新版本，增强智能体功能，值得关注。</p>
+    <span class="meta">MiniMax · GitHub 发布 · 2 天前 · 原标题：OpenAgentCore OpenAgentCore v0.0.12</span>
+    
+    
   </li>
 <li>
-    <a href="https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.2" target="_blank" rel="noopener">DeepSeek 发布 deepseek-harness v0.2.1-alpha.2</a>
+    <a href="https://github.com/MiniMax-AI/OpenAgentCore/releases/tag/v0.0.12-rc.2" target="_blank" rel="noopener">OpenAgentCore v0.0.12-rc.2发布</a>
     <span class="tag">产品动态</span>
-    <p class="summary">DeepSeek 发布了 deepseek-harness 的更新版本，带来改进。</p>
-    <span class="meta">DeepSeek · GitHub 发布 · 6 天前 · 原标题：deepseek-harness v0.2.1-alpha.2</span>
+    <p class="summary">MiniMax发布新版本，优化智能体性能，值得关注。</p>
+    <span class="meta">MiniMax · GitHub 发布 · 6 天前 · 原标题：OpenAgentCore OpenAgentCore v0.0.12-rc.2</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>Claude</h3>
+      <ul><li>
+    <a href="https://github.com/anthropics/claude-code/releases/tag/v2.1.306" target="_blank" rel="noopener">claude-code v2.1.306发布</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">Claude发布新版本，提升代码生成效率，值得关注。</p>
+    <span class="meta">Claude · GitHub 发布 · 昨天 · 原标题：claude-code v2.1.306</span>
+    
+    
   </li>
 <li>
-    <a href="https://techcrunch.com/2026/10/14/gudea-leverages-ai-to-help-organizations-prevent-social-media-crises-before-they-erupt/" target="_blank" rel="noopener">Gudea利用AI预防社交媒体危机</a>
+    <a href="https://github.com/anthropics/claude-code/releases/tag/v2.1.305" target="_blank" rel="noopener">claude-code v2.1.305发布</a>
     <span class="tag">产品动态</span>
-    <p class="summary">Gudea公司利用AI技术帮助组织预防社交媒体危机，值得关注。</p>
-    <span class="meta">TechCrunch · AI 新闻 · <span class="new">今天</span> · 原标题：Gudea leverages AI to help organizations prevent social media crises before they erupt</span>
+    <p class="summary">Claude发布新版本，增强代码生成能力，值得关注。</p>
+    <span class="meta">Claude · GitHub 发布 · 昨天 · 原标题：claude-code v2.1.305</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>OpenAI / Codex</h3>
+      <ul><li>
+    <a href="https://openai.com/index/chatgpt-ads-expands-26-new-countries" target="_blank" rel="noopener">ChatGPT广告扩展至26国</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">ChatGPT广告平台扩展至26个国家，吸引大量广告商，值得关注。</p>
+    <span class="meta">OpenAI · 官方新闻 · 昨天 · 原标题：ChatGPT Ads expands to 26 new countries as over 100,000 advertisers have used the platform</span>
+    
+    
+  </li>
+<li>
+    <a href="https://openai.com/index/openai-models-google-cloud" target="_blank" rel="noopener">OpenAI模型将上线Google Cloud</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">OpenAI模型将集成Google Cloud，扩展服务范围，值得关注。</p>
+    <span class="meta">OpenAI · 官方新闻 · 昨天 · 原标题：OpenAI models are coming to Google Cloud</span>
+    
+    
+  </li>
+<li>
+    <a href="https://openai.com/index/coordinated-disclosure-of-critical-vulnerabilities" target="_blank" rel="noopener">Patch the Planet项目启动</a>
+    <span class="tag">研究进展</span>
+    <p class="summary">OpenAI启动全球响应协调项目，关注漏洞发现，值得关注。</p>
+    <span class="meta">OpenAI · 官方新闻 · 昨天 · 原标题：Patch the Planet: global response coordination as agents uncover critical vulnerabilities</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>Gemini</h3>
+      <ul><li>
+    <a href="https://github.com/google-gemini/gemini-cli/releases/tag/v0.65.0" target="_blank" rel="noopener">gemini-cli v0.65.0发布</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">Gemini发布新版本，增强命令行交互，值得关注。</p>
+    <span class="meta">Gemini · GitHub 发布 · 昨天 · 原标题：gemini-cli Release v0.65.0</span>
+    
+    
+  </li>
+<li>
+    <a href="https://deepmind.google/blog/accelerating-antimicrobial-discovery/" target="_blank" rel="noopener">Google Antigravity加速抗菌肽搜索</a>
+    <span class="tag">研究进展</span>
+    <p class="summary">Google DeepMind使用Antigravity加速抗菌肽搜索，值得关注。</p>
+    <span class="meta">Google DeepMind · 官方博客 · 6 天前 · 原标题：Accelerating the search for antimicrobial peptides with Google Antigravity</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>OpenCode</h3>
+      <ul><li>
+    <a href="https://github.com/anomalyco/opencode/releases/tag/github-v1.2.27" target="_blank" rel="noopener">opencode github-v1.2.27发布</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">OpenCode发布新版本，优化代码管理，值得关注。</p>
+    <span class="meta">OpenCode · GitHub 发布 · 昨天 · 原标题：opencode github-v1.2.27</span>
+    
+    
+  </li>
+<li>
+    <a href="https://github.com/anomalyco/opencode/releases/tag/v2.1.2" target="_blank" rel="noopener">opencode v2.1.2发布</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">OpenCode发布新版本，提升代码编辑体验，值得关注。</p>
+    <span class="meta">OpenCode · GitHub 发布 · 昨天 · 原标题：opencode v2.1.2</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>Cursor</h3>
+      <ul><li>
+    <a href="https://medium.com/@MirArshadTalpur/how-to-track-and-cut-your-cursor-token-costs-with-zizkadb-and-mcp-9cf1d8f6130c" target="_blank" rel="noopener">ZizkaDB和MCP追踪Cursor Token成本</a>
+    <span class="tag">福利资源</span>
+    <p class="summary">Hacker News提供追踪和降低Cursor Token成本的方法，值得关注。</p>
+    <span class="meta">Hacker News · Cursor · 2 天前 · 原标题：How to Track and Cut Your Cursor Token Costs with ZizkaDB and MCP</span>
+    
+    
+  </li>
+<li>
+    <a href="https://thoughts.jock.pl/p/ai-coding-harness-agents-2026" target="_blank" rel="noopener">Claude Code与Codex CLI等比较</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">Hacker News比较多个代码生成工具，值得关注。</p>
+    <span class="meta">Hacker News · Cursor · 6 天前 · 原标题：Claude Code vs. Codex CLI vs. Aider vs. OpenCode vs. Pi vs. Cursor</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>Qoder</h3>
+      <ul><li>
+    <a href="https://news.google.com/rss/articles/CBMiS0FVX3lxTE91RXBoandDeHNmSXBVMUx6bU8zdEt6MWJibHNMZjNrR3RZMldRNjRUUTRBNk44RGdiajNDX0tES3hOXy1VWDkzd3JsVQ?oc=5" target="_blank" rel="noopener">PPIO与Qoder智能体工作台合作</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">PPIO与阿里出品的Qoder智能体工作台合作，值得关注。</p>
+    <span class="meta">新闻搜索 · Qoder · 6 天前 · 原标题：PPIO x 全新 Qoder：阿里出品的智能体工作台，一键接入- OSCHINA - 开源 × AI · 开发者生态社区 - OSCHINA</span>
+    
+    
+  </li>
+<li>
+    <a href="https://news.google.com/rss/articles/CBMiYkFVX3lxTE1TMllDeXpodlo3ZHUtNnZybG5ESnVac1paSC1VNHg2Mm9kakN1VmlGQXpXVHl0dWNaRUl4VTZoTkQ0ZUZiM01LdDNtUVNQX2Z4Nk1QenBIVVZqSW82bXhYeWNR?oc=5" target="_blank" rel="noopener">Qoder上线Fast模式提升效率</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">Qoder上线Fast模式，生成速度提升，值得关注。</p>
+    <span class="meta">新闻搜索 · Qoder · 10 天前 · 原标题：阿里Qoder上线Fast模式 生成速度提升超150% Token消耗减少27% - 观点网</span>
+    
+    
+  </li></ul>
+    </div>
+<div class="product">
+      <h3>WorkBuddy</h3>
+      <ul><li>
+    <a href="https://news.google.com/rss/articles/CBMibEFVX3lxTE0zdkd0NGNhQTVjNnN2Tjh5dHFIT0d1V2xTTEJPZ0MyX2hLWHVsWnRKS3Q4a3FJb1hLSWhpRlhCN184cmtiQ0xUZDhEU1F2ZXJ4aGs3OEtOcGtTdzAtX1dCS3FYMlR6d01NZFdWYw?oc=5" target="_blank" rel="noopener">WorkBuddy职场办公提效活动举办</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">深圳市物联网产业协会举办WorkBuddy职场办公提效活动，值得关注。</p>
+    <span class="meta">新闻搜索 · WorkBuddy · 昨天 · 原标题：AI提效 · 智领办公！深圳市物联网产业协会成功举办WorkBuddy职场办公提效进阶实操公益活动！ - RFID世界网</span>
+    
+    
+  </li>
+<li>
+    <a href="https://news.google.com/rss/articles/CBMiTkFVX3lxTE8tMUpJNU9FU3RSTVhqMGVrS2F3U01odGdOeWYxakVfVE13ZTZhOTZvZ3JaVWpJMWZ4STl4T19QZFowYWNRS3lEM0syTTlfQQ?oc=5" target="_blank" rel="noopener">办公Agent赛道新格局</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">WorkBuddy、百度搭子、千问办公位居办公Agent赛道前三，值得关注。</p>
+    <span class="meta">新闻搜索 · WorkBuddy · 昨天 · 原标题：办公Agent赛道迎新格局 WorkBuddy、百度搭子、千问办公位居前三 - AIBase</span>
+    
+    
+  </li></ul>
+    </div></section>
+<section class="source"><h2>福利资源 <span class="count">1 条</span></h2>
+      <ul><li>
+    <a href="https://www.reddit.com/r/LocalLLaMA/comments/1x9yg86/biweekly_megathread_project_showcase/" target="_blank" rel="noopener">LocalLLaMA社区项目展示</a>
+    <span class="tag">福利资源</span>
+    <p class="summary">LocalLLaMA社区展示项目，分享开发经验。</p>
+    <span class="meta">r/LocalLLaMA · 社区热帖 · 3 天前 · 原标题：[Bi-Weekly Megathread] Project Showcase</span>
+    
+    
   </li></ul></section>
-<section class="source"><h2>研究进展 <span class="count">4 条</span></h2>
+<section class="source"><h2>产品动态 <span class="count">5 条</span></h2>
       <ul><li>
-    <a href="https://openai.com/index/third-moment-research" target="_blank" rel="noopener">Third Moment 研究使用 10,000 个代理运行 36+ 小时</a>
-    <span class="tag">研究进展</span>
-    <p class="summary">Third Moment 研究展示了长时间运行大量 AI 代理的能力，对研究有重要意义。</p>
-    <span class="meta">OpenAI · 官方新闻 · 昨天 · 原标题：How Third Moment Research runs 10,000 agents for 36+ hours</span>
+    <a href="https://huggingface.co/blog/hf-torchtpu" target="_blank" rel="noopener">Hugging Face与TorchTPU合作</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">Hugging Face与TorchTPU合作，支持TPU原生使用。</p>
+    <span class="meta">Hugging Face · 官方博客 · 2 天前 · 原标题：Hugging Face ❤️ TorchTPU: TPUs, Natively</span>
+    
+    
   </li>
 <li>
-    <a href="https://deepmind.google/blog/on-device-ai-scam-detection-mddi/" target="_blank" rel="noopener">Google DeepMind 与新加坡政府合作构建诈骗检测 AI 模型</a>
-    <span class="tag">研究进展</span>
-    <p class="summary">Google DeepMind 与新加坡政府合作，开发用于诈骗检测的定制 AI 模型。</p>
-    <span class="meta">Google DeepMind · 官方博客 · 昨天 · 原标题：Google DeepMind and Singapore Government collaborate to build fine-tuned AI model for scam detection</span>
+    <a href="https://simonwillison.net/2026/Oct/20/battledrones/" target="_blank" rel="noopener">Battle Drones游戏发布</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">基于音频的多玩家RTS游戏Battle Drones发布。</p>
+    <span class="meta">Simon Willison · LLM 实践博客 · 昨天 · 原标题：Battle Drones - a vibe coded RTS with audio-based multiplayer</span>
+    
+    
   </li>
 <li>
-    <a href="https://deepmind.google/blog/developing-gemini-4-argon-responsibly-and-safely/" target="_blank" rel="noopener">Gemini 4 Argon 负责任地开发与安全使用</a>
-    <span class="tag">研究进展</span>
-    <p class="summary">Google DeepMind 负责任地开发 Gemini 4 Argon 模型，确保其安全使用。</p>
-    <span class="meta">Google DeepMind · 官方博客 · 昨天 · 原标题：Developing Gemini 4 Argon responsibly and safely</span>
+    <a href="https://simonwillison.net/2026/Oct/18/llm-tools-datasette/" target="_blank" rel="noopener">llm-tools-datasette更新</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">llm-tools-datasette更新至0.1.1版本。</p>
+    <span class="meta">Simon Willison · LLM 实践博客 · 3 天前 · 原标题：llm-tools-datasette 0.1.1</span>
+    
+    
   </li>
 <li>
-    <a href="https://deepmind.google/blog/introducing-gemini-4-argon/" target="_blank" rel="noopener">Gemini 4 Argon 解决复杂问题</a>
-    <span class="tag">研究进展</span>
-    <p class="summary">Google DeepMind 强调 Gemini 4 Argon 模型在解决复杂问题上的能力。</p>
-    <span class="meta">Google DeepMind · 官方博客 · 昨天 · 原标题：Gemini 4 Argon: Built to solve your hardest problems</span>
+    <a href="https://simonwillison.net/2026/Oct/18/llm-echo/" target="_blank" rel="noopener">llm-echo更新至0.5版本</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">llm-echo更新至0.5版本。</p>
+    <span class="meta">Simon Willison · LLM 实践博客 · 3 天前 · 原标题：llm-echo 0.5</span>
+    
+    
+  </li>
+<li>
+    <a href="https://www.qbitai.com/2026/10/504638.html" target="_blank" rel="noopener">轻舟城市NOA提升自动驾驶体验</a>
+    <span class="tag">产品动态</span>
+    <p class="summary">轻舟城市NOA提升自动驾驶体验，4个月9款车落地。</p>
+    <span class="meta">量子位 · AI 资讯 · 昨天 · 原标题：量智齐飞！4个月9款车落地，轻舟城市NOA击穿10-20万体验天花板</span>
+    
+    
   </li></ul></section>
-<section class="source"><h2>行业动态 <span class="count">4 条</span></h2>
+<section class="source"><h2>研究进展 <span class="count">5 条</span></h2>
       <ul><li>
-    <a href="https://openai.com/index/the-eus-next-chapter-in-ai-is-agentic" target="_blank" rel="noopener">欧盟 AI 发展新篇章：以代理为中心</a>
-    <span class="tag">行业动态</span>
-    <p class="summary">欧盟将 AI 发展方向转向以代理为中心，探索新的 AI 应用模式。</p>
-    <span class="meta">OpenAI · 官方新闻 · 昨天 · 原标题：The EU’s next chapter in AI is agentic</span>
+    <a href="https://huggingface.co/blog/allenai/fairstress" target="_blank" rel="noopener">FairStress评估LLM决策公平性</a>
+    <span class="tag">研究进展</span>
+    <p class="summary">研究FairStress评估大型语言模型决策中的公平性，深入探讨公平性问题。</p>
+    <span class="meta">Hugging Face · 官方博客 · 昨天 · 原标题：FairStress: A deeper evaluation of fairness in LLM decision-making</span>
+    
+    
   </li>
 <li>
-    <a href="https://www.anthropic.com/news/2026-us-midterms" target="_blank" rel="noopener">Anthropic 准备 2026 年美国中期选举</a>
-    <span class="tag">行业动态</span>
-    <p class="summary">Anthropic 准备利用 AI 技术参与 2026 年美国中期选举的相关工作。</p>
-    <span class="meta">Anthropic · 官方新闻 · 昨天 · 原标题：Preparing for the 2026 US midterms</span>
+    <a href="https://huggingface.co/blog/ibm-research/altk-evolve-bc" target="_blank" rel="noopener">ALTK-Evolve在客服任务中领先</a>
+    <span class="tag">研究进展</span>
+    <p class="summary">ALTK-Evolve模型在客服任务中表现优异，无需前沿模型即可登顶τ²-bench排行榜。</p>
+    <span class="meta">Hugging Face · 官方博客 · 2 天前 · 原标题：ALTK-Evolve: How learned memory tops the τ²-bench leaderboard on customer service tasks without a frontier model</span>
+    
+    
   </li>
 <li>
-    <a href="https://www.anthropic.com/news/singapore-office-opening" target="_blank" rel="noopener">Anthropic 在新加坡开设办公室并签署谅解备忘录</a>
-    <span class="tag">行业动态</span>
-    <p class="summary">Anthropic 在新加坡开设办公室，并与新加坡政府签署谅解备忘录。</p>
-    <span class="meta">Anthropic · 官方新闻 · 昨天 · 原标题：Anthropic opens Singapore office and signs MOU with the Government of Singapore</span>
+    <a href="https://www.qbitai.com/2026/10/504734.html" target="_blank" rel="noopener">清华AIR孵化多智能体医疗AI</a>
+    <span class="tag">研究进展</span>
+    <p class="summary">清华AIR孵化多智能体医疗AI，医生AI分身“坐诊”医院。</p>
+    <span class="meta">量子位 · AI 资讯 · 昨天 · 原标题：多智能体协同重构医疗AI！清华AIR孵化：医生AI分身“坐诊”医院</span>
+    
+    
   </li>
 <li>
-    <a href="https://techcrunch.com/2026/10/14/flock-ceo-says-its-microphones-detect-just-gunshots-its-website-says-different/" target="_blank" rel="noopener">Flock CEO称其麦克风能检测到‘仅枪声’</a>
-    <span class="tag">行业动态</span>
-    <p class="summary">Flock公司CEO声称其麦克风能检测枪声，但官网说法不同，值得关注。</p>
-    <span class="meta">TechCrunch · AI 新闻 · <span class="new">今天</span> · 原标题：Flock CEO says its microphones detect ‘just gunshots’ — its website says different</span>
+    <a href="https://www.qbitai.com/2026/10/504730.html" target="_blank" rel="noopener">Motubrain团队直播Physical AI训练</a>
+    <span class="tag">研究进展</span>
+    <p class="summary">生数科技Motubrain团队将直播Physical AI训练全流程。</p>
+    <span class="meta">量子位 · AI 资讯 · 昨天 · 原标题：生数科技Motubrain团队将直播Physical AI训练全流程，持续半个月</span>
+    
+    
+  </li>
+<li>
+    <a href="https://www.qbitai.com/2026/10/504653.html" target="_blank" rel="noopener">清华系公司做进LeCun押注的世界模型</a>
+    <span class="tag">研究进展</span>
+    <p class="summary">LeCun押注的世界模型，中国一家清华系公司已经做进了机器人。</p>
+    <span class="meta">量子位 · AI 资讯 · 昨天 · 原标题：LeCun押注的世界模型，中国一家清华系公司已经做进了机器人</span>
+    
+    
   </li></ul></section>
-<section class="source"><h2>其他 <span class="count">27 条</span></h2>
+<section class="source"><h2>行业动态 <span class="count">9 条</span></h2>
       <ul><li>
-      <a href="https://github.com/mnfst/awesome-free-llm-apis/commit/cf97c32fec1b2e96e9936746e2731a81bd5ea33f" target="_blank" rel="noopener">Remove malicious security-audit workflow (credential stealer)</a>
-      <span class="meta">免费 LLM API 动态 · 4 天前 · 未经 AI 加工</span>
-    </li>
+    <a href="https://www.reddit.com/r/LocalLLaMA/comments/1xbfhxp/be_prepared_gpu_price_increase_incoming_samsung/" target="_blank" rel="noopener">GPU价格预计上涨</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">三星售罄2027年全部HBM产能，预计HBM价格明年将翻倍，DRAM价格也将大幅上涨。</p>
+    <span class="meta">r/LocalLLaMA · 社区热帖 · 昨天 · 原标题：Be prepared, GPU price increase incoming --&gt; Samsung sells out 100% of all 2027 HBM capacity - HBM prices expected to jump 200% next year, DRAM prices expected to see a double-digit price increase</span>
+    
+    
+  </li>
 <li>
+    <a href="https://www.reddit.com/r/LocalLLaMA/comments/1xb9z8e/exclusive_bytedance_alibaba_tencent_place_over_35/" target="_blank" rel="noopener">字节跳动、阿里、腾讯订购Nvidia芯片</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">字节跳动、阿里、腾讯总计订购超过350亿美元的Nvidia芯片。</p>
+    <span class="meta">r/LocalLLaMA · 社区热帖 · 昨天 · 原标题：EXCLUSIVE: ByteDance, Alibaba, Tencent place over $35 billion worth of Nvidia chip orders</span>
+    
+    
+  </li>
+<li>
+    <a href="https://simonwillison.net/2026/Oct/20/emudhra-certificates/" target="_blank" rel="noopener">eMudhra Intermediate CA被破解</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">eMudhra Intermediate CA被破解，引发安全担忧。</p>
+    <span class="meta">Simon Willison · LLM 实践博客 · 昨天 · 原标题：eMudhra Intermediate CA Compromise</span>
+    
+    
+  </li>
+<li>
+    <a href="https://techcrunch.com/2026/10/21/ai-promises-productivity-but-for-managers-its-mostly-a-headache-for-now-says-new-survey/" target="_blank" rel="noopener">AI生产力与管理者挑战</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">AI承诺提高生产力，但管理者面临挑战。</p>
+    <span class="meta">TechCrunch · AI 新闻 · 昨天 · 原标题：AI promises productivity, but for managers, it’s mostly a headache for now</span>
+    
+    
+  </li>
+<li>
+    <a href="https://techcrunch.com/2026/10/20/anthropic-pitches-ai-safety-bill-that-may-block-a-model-if-50-people-could-be-killed/" target="_blank" rel="noopener">Anthropic提出AI安全法案</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">Anthropic提出AI安全法案，若模型可能导致50人以上死亡则可能被禁止。</p>
+    <span class="meta">TechCrunch · AI 新闻 · 昨天 · 原标题：Anthropic pitches AI safety bill that may block a model if 50+ people could be killed</span>
+    
+    
+  </li>
+<li>
+    <a href="https://techcrunch.com/2026/10/20/hugging-face-ceo-warns-that-netflixs-openai-hack-documentary-isnt-accurate/" target="_blank" rel="noopener">Netflix OpenAI纪录片不准确</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">Hugging Face CEO警告Netflix的OpenAI纪录片不准确。</p>
+    <span class="meta">TechCrunch · AI 新闻 · 昨天 · 原标题：Hugging Face CEO warns that Netflix’s OpenAI hack documentary isn’t accurate</span>
+    
+    
+  </li>
+<li>
+    <a href="https://techcrunch.com/2026/10/20/anthropics-cloud-partnerships-are-getting-messy/" target="_blank" rel="noopener">Anthropic云合作伙伴关系复杂化</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">Anthropic的云合作伙伴关系变得复杂。</p>
+    <span class="meta">TechCrunch · AI 新闻 · 昨天 · 原标题：Anthropic’s cloud partnerships are getting messy</span>
+    
+    
+  </li>
+<li>
+    <a href="https://techcrunch.com/2026/10/20/spacexs-ai-business-is-beating-expectations/" target="_blank" rel="noopener">SpaceX AI业务超预期</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">SpaceX的AI业务超出预期。</p>
+    <span class="meta">TechCrunch · AI 新闻 · 昨天 · 原标题：SpaceX’s AI business is beating expectations</span>
+    
+    
+  </li>
+<li>
+    <a href="https://www.qbitai.com/2026/10/504618.html" target="_blank" rel="noopener">宁德时代总部“去宁化”讨论</a>
+    <span class="tag">行业动态</span>
+    <p class="summary">实探宁德时代总部，讨论“去宁化”话题。</p>
+    <span class="meta">量子位 · AI 资讯 · 昨天 · 原标题：实探宁德时代总部：“去宁化”是喊太大声了</span>
+    
+    
+  </li></ul></section>
+<section class="source"><h2>其他 <span class="count">15 条</span></h2>
+      <ul><li>
       <a href="https://github.com/mnfst/awesome-free-llm-apis/commit/48fcbe86582e16b7b746fee52e5512a891a8db76" target="_blank" rel="noopener">Add security audit workflow</a>
-      <span class="meta">免费 LLM API 动态 · 5 天前 · 未经 AI 加工</span>
+      <span class="meta">免费 LLM API 动态 · 12 天前 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
       <a href="https://github.com/mnfst/awesome-free-llm-apis/commit/b25c0395fe1e7628ecc99bf119a40365801c6fb4" target="_blank" rel="noopener">Merge pull request #130 from mnfst/bot/free-models-sync</a>
-      <span class="meta">免费 LLM API 动态 · 10 天前 · 未经 AI 加工</span>
+      <span class="meta">免费 LLM API 动态 · 17 天前 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
       <a href="https://github.com/mnfst/awesome-free-llm-apis/commit/41197cb7d053680daf808d6618142045e961caaa" target="_blank" rel="noopener">feat: nightly refresh 2026-10-05</a>
-      <span class="meta">免费 LLM API 动态 · 10 天前 · 未经 AI 加工</span>
+      <span class="meta">免费 LLM API 动态 · 17 天前 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://sunshowers.io/posts/anthropic-mononoke/" target="_blank" rel="noopener">Anthropic's Scion is heavily inspired by Mononoke</a>
-      <span class="meta">Hacker News · AI 热帖 · <span class="new">今天</span> · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://defence24.com/geopolitics/starlink-limit-hits-ukraines-drones-the-battlefield-depends-on-spacex" target="_blank" rel="noopener">Starlink limit hits Ukraine's drones</a>
-      <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://petal.live/" target="_blank" rel="noopener">Show HN: Petal, open-source CoScreen/ScreenHero finally free</a>
-      <span class="meta">Hacker News · AI 热帖 · <span class="new">今天</span> · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://pulseos.finance" target="_blank" rel="noopener">Show HN: Pulse Local, a Mac budgeting app whose AI models run on your machine</a>
-      <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://www.heise.de/en/news/Crypto-thieves-sell-hardware-wallets-with-secret-eSIM-11485188.html" target="_blank" rel="noopener">Crypto thieves sell hardware wallets with secret eSIM</a>
+      <a href="https://github.com/deepseek-ai/DeepInfer" target="_blank" rel="noopener">DeepInfer: High-performance inference framework for DeepSeek models</a>
       <span class="meta">Hacker News · AI 热帖 · 2 天前 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://www.liquid.ai/blog/lfm2-5-24b-a2b" target="_blank" rel="noopener">LFM2.5-24B-A2B: Built for fast on-device agents</a>
-      <span class="meta">Hacker News · AI 热帖 · <span class="new">今天</span> · 未经 AI 加工</span>
+      <a href="https://www.reuters.com/technology/us-banning-chinese-ai-deepseek-government-agency-it-systems-2026-10-19/" target="_blank" rel="noopener">DeepSeek banned from U.S. federal civilian agencies under new DHS order</a>
+      <span class="meta">Hacker News · AI 热帖 · 2 天前 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://parsimony.lasu.dev/" target="_blank" rel="noopener">Show HN: Parsimony – an open-source benchmark for how much code AI models add</a>
+      <a href="https://www.hirundo.io/blog/qwen3-coder-vulnerabilities" target="_blank" rel="noopener">Qwen3-Coder writes less secure code when told it's for a US persona</a>
       <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://news.ycombinator.com/item?id=50084969" target="_blank" rel="noopener">Ask HN: What is the current trajectory of a senior engineer?</a>
+      <a href="https://github.com/KatrielMoses/voidaccess" target="_blank" rel="noopener">Show HN: VoidAccess – open-source dark web OSINT, from query to a graph</a>
+      <span class="meta">Hacker News · AI 热帖 · 2 天前 · 未经 AI 加工</span>
+      
+      
+    </li>
+<li>
+      <a href="https://www.reuters.com/business/anthropic-recorded-net-loss-over-80-billion-first-half-this-year-wsj-reports-2026-10-20/" target="_blank" rel="noopener">Anthropic logged net loss of over $80B in first half of 2026</a>
       <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://bsky.app/profile/adamjschwarz.bsky.social/post/3mxsy6s4nt22m" target="_blank" rel="noopener">SpaceX activated 100mph speed-limit restriction on Starlink terminals in Ukraine</a>
+      <a href="https://www.anthropic.com/research/claude-scorpion-toxin-binder-design" target="_blank" rel="noopener">Claude designed protein binders against scorpion neurotoxins</a>
       <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://www.cnbc.com/2026/10/14/anthropic-mythos-bank-of-america-hiring-cost.html" target="_blank" rel="noopener">Bank of America hired 1000 contractors to patch software flaws exposed by Mythos</a>
-      <span class="meta">Hacker News · AI 热帖 · <span class="new">今天</span> · 未经 AI 加工</span>
+      <a href="https://www.anthropic.com/research/attack-surface-reduction" target="_blank" rel="noopener">Using Claude to reduce the attack surface of code</a>
+      <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://huggingface.co/blog/allenai/hiro-acev2" target="_blank" rel="noopener">HiRO-ACEv2: Simulating extreme weather at 3 km resolution for a fraction of the cost</a>
-      <span class="meta">Hugging Face · 官方博客 · <span class="new">今天</span> · 未经 AI 加工</span>
+      <a href="https://openai.com/index/coordinated-disclosure-of-critical-vulnerabilities/" target="_blank" rel="noopener">Patch the Planet: global response coordination as agents uncover vulnerabilities</a>
+      <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://huggingface.co/blog/LiquidAI/lfm25-24b-a2b" target="_blank" rel="noopener">Run fast, private agents on-device with LFM2.5-24B-A2B</a>
+      <a href="https://openai.com/index/low-resource-programming-languages/" target="_blank" rel="noopener">Advanced coding in low-resource programming languages</a>
+      <span class="meta">Hacker News · AI 热帖 · 昨天 · 未经 AI 加工</span>
+      
+      
+    </li>
+<li>
+      <a href="https://madrobot.blog/2026/10/19/us-bans-deepseek-federal-agencies-dhs-order-remove-third-party/" target="_blank" rel="noopener">The US orders every civilian agency to rip out DeepSeek, even tools built on it</a>
+      <span class="meta">Hacker News · AI 热帖 · 2 天前 · 未经 AI 加工</span>
+      
+      
+    </li>
+<li>
+      <a href="https://huggingface.co/blog/ibm-granite/granite-speech-5" target="_blank" rel="noopener">Granite Speech 5.0: Transcribe, Translate, and Attribute more Accurately and Faster</a>
       <span class="meta">Hugging Face · 官方博客 · 昨天 · 未经 AI 加工</span>
+      
+      
     </li>
 <li>
-      <a href="https://www.reddit.com/r/LocalLLaMA/comments/1x5t1tm/nvidia_nemotron_bolt_35_74b_a9b_releases_oct_15th/" target="_blank" rel="noopener">NVIDIA Nemotron Bolt 3.5 74B A9B releases Oct. 15th</a>
-      <span class="meta">r/LocalLLaMA · 社区热帖 · 昨天 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://www.reddit.com/r/LocalLLaMA/comments/1x68qma/very_impressed_with_lfm2524a2b_in_pi_agent/" target="_blank" rel="noopener">Very impressed with LFM2.5-24-A2B in Pi Agent</a>
-      <span class="meta">r/LocalLLaMA · 社区热帖 · <span class="new">今天</span> · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://www.reddit.com/r/LocalLLaMA/comments/1x5pjv7/the_ai_race_chinas_openweight_models_trail_us/" target="_blank" rel="noopener">The AI race: China's open-weight models trail US closed models by just 7 months</a>
-      <span class="meta">r/LocalLLaMA · 社区热帖 · 昨天 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://www.reddit.com/r/LocalLLaMA/comments/1x5y904/mrchatterbox27bchat_a_model_trained_from_scratch/" target="_blank" rel="noopener">Mr.Chatterbox-2.7B-Chat: A model trained from scratch on Victorian texts</a>
-      <span class="meta">r/LocalLLaMA · 社区热帖 · <span class="new">今天</span> · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://www.reddit.com/r/LocalLLaMA/comments/1x5tsni/inclusionailing31flash_hugging_face/" target="_blank" rel="noopener">inclusionAI/Ling-3.1-flash · Hugging Face</a>
-      <span class="meta">r/LocalLLaMA · 社区热帖 · 昨天 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://simonwillison.net/2026/Oct/14/tree-appreciator/" target="_blank" rel="noopener">Tree Appreciator</a>
-      <span class="meta">Simon Willison · LLM 实践博客 · <span class="new">今天</span> · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://simonwillison.net/2026/Oct/14/ai-is-mass-decompiling-games/" target="_blank" rel="noopener">AI is mass decompiling games. That's both awesome and scary.</a>
-      <span class="meta">Simon Willison · LLM 实践博客 · <span class="new">今天</span> · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://simonwillison.net/2026/Oct/13/redesigning-source-control-at-anthropic/" target="_blank" rel="noopener">Redesigning source control at Anthropic</a>
-      <span class="meta">Simon Willison · LLM 实践博客 · 昨天 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://simonwillison.net/2026/Oct/13/llm-gemini/" target="_blank" rel="noopener">llm-gemini 0.35</a>
-      <span class="meta">Simon Willison · LLM 实践博客 · 昨天 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://simonwillison.net/2026/Oct/13/geoffrey-huntley/" target="_blank" rel="noopener">Quoting Geoffrey Huntley</a>
-      <span class="meta">Simon Willison · LLM 实践博客 · 2 天前 · 未经 AI 加工</span>
-    </li>
-<li>
-      <a href="https://techcrunch.com/2026/10/14/ricursive-intelligence-is-betting-on-ai-designed-chips-to-help-solve-the-compute-crisis/" target="_blank" rel="noopener">Ricursive Intelligence is betting on AI-designed chips to help solve the compute crisis</a>
-      <span class="meta">TechCrunch · AI 新闻 · <span class="new">今天</span> · 未经 AI 加工</span>
-    </li></ul></section>
+    <a href="https://simonwillison.net/2026/Oct/19/my-obituary-for-programming/" target="_blank" rel="noopener">程序员职业反思文章发布</a>
+    <span class="tag">其他</span>
+    <p class="summary">Simon Willison发布程序员职业反思文章。</p>
+    <span class="meta">Simon Willison · LLM 实践博客 · 2 天前 · 原标题：My obituary for programming</span>
+    
+    
+  </li></ul></section>
+<section class="source"><h2>免费 LLM API 动态 <span class="count">1 条</span></h2>
+      <ul><li>
+    <a href="https://github.com/mnfst/awesome-free-llm-apis/commit/cf97c32fec1b2e96e9936746e2731a81bd5ea33f" target="_blank" rel="noopener">移除恶意安全审计工作流</a>
+    <span class="tag">免费 LLM API 动态</span>
+    <p class="summary">免费LLM API移除恶意安全审计工作流，值得关注。</p>
+    <span class="meta">免费 LLM API 动态 · 11 天前 · 原标题：Remove malicious security-audit workflow (credential stealer)</span>
+    
+    
+  </li></ul></section>
 
 <footer>
   morning-brief —— 只抓取官方 API / 开放协议；AI 摘要仅供导读，点击条目可跳转原文。

@@ -78,6 +78,7 @@ import {
   buildReducePrompt, applyReduced,
 } from './lib/extract.mjs';
 import { mapHfModels, mapReleaseItems, mapNewsItems, mapHnHits, dedupeByLink } from './lib/products.mjs';
+import { buildDedupePrompt, applyDedupe } from './lib/dedup.mjs';
 
 // 成本控制：只对高分条目做（正文比标题长几十倍，全量会让调用量涨十倍以上）。
 // 想全量就把 POINTS_MIN_SCORE 设为 1；完全关掉用 --skip-points 或 POINTS_ENABLED=0。
@@ -335,6 +336,40 @@ async function enrichWithLLM(items) {
   return merged;
 }
 
+// ---------- 多源去重：同一事件的多篇报道合并为一条 ----------
+
+/** 让 LLM 找出同一事件的分组，再用纯逻辑合并；单批失败只影响该批 */
+async function dedupeNews(items) {
+  const news = items.filter((it) => !it.product);
+  const products = items.filter((it) => it.product);
+  if (news.length < 2) return items;
+
+  const rawGroups = [];
+  for (let i = 0; i < news.length; i += 40) {
+    const chunk = news.slice(i, i + 40);
+    try {
+      const content = await chatWithFallback([
+        { role: 'system', content: '你是严谨的新闻编辑，只输出 JSON。' },
+        { role: 'user', content: buildDedupePrompt(chunk) },
+      ]);
+      const cleaned = content.replace(/```(?:json)?/g, '').trim();
+      const parsed = JSON.parse(cleaned.slice(cleaned.indexOf('{'), cleaned.lastIndexOf('}') + 1));
+      for (const g of parsed.groups ?? []) {
+        if (!Array.isArray(g)) continue;
+        rawGroups.push(g.map((n) => i + Number(n)));
+      }
+    } catch (err) {
+      console.warn(`⚠ 多源去重：一批失败（${err.message}），该批保持原样`);
+    }
+  }
+
+  const { items: deduped, merged } = applyDedupe(news, rawGroups);
+  console.log(merged
+    ? `多源去重：合并 ${merged} 组重复报道`
+    : '多源去重：未发现跨来源重复报道');
+  return [...deduped, ...products];
+}
+
 // ---------- 原文精简版：抓正文 → 分段 → 逐段抽取 → 合并 ----------
 
 /** 抽取一段正文的要点；失败返回 null（由调用方决定降级） */
@@ -404,7 +439,7 @@ async function buildPoints(item) {
  */
 async function buildAllPoints(items) {
   const targets = items
-    .filter((it) => !it.product && (it.en?.score ?? 0) >= POINTS_MIN_SCORE)
+    .filter((it) => !it.product && !it.dupOf && (it.en?.score ?? 0) >= POINTS_MIN_SCORE)
     .slice(0, POINTS_MAX_ITEMS);
   if (!targets.length) return new Map();
 
@@ -626,11 +661,18 @@ function renderAiItem(it) {
   const meta = [escapeHtml(it.source), when].filter(Boolean).join(' · ');
   // 原文精简版：默认折叠，点开就地读，不必跳转到原站
   const pts = renderPoints(it);
+  // 多源去重：主条目下方挂上同一事件的其他报道
+  const related = Array.isArray(it.related) && it.related.length
+    ? `<p class="related">相关报道：${it.related
+      .map((r) => `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">${escapeHtml(r.source)}</a>`)
+      .join('、')}</p>`
+    : '';
   if (!it.en) {
     return `<li>
       <a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a>
       <span class="meta">${meta} · 未经 AI 加工</span>
       ${pts}
+      ${related}
     </li>`;
   }
   const orig = it.en.zh !== it.title ? ` · 原标题：${escapeHtml(it.title)}` : '';
@@ -640,6 +682,7 @@ function renderAiItem(it) {
     ${it.en.summary ? `<p class="summary">${escapeHtml(it.en.summary)}</p>` : ''}
     <span class="meta">${meta}${orig}</span>
     ${pts}
+    ${related}
   </li>`;
 }
 
@@ -697,7 +740,7 @@ function renderAiPage(flat, enriched, { failedNote, pointsMap = new Map() }) {
       bodyChars: p?.bodyChars ?? 0,
       bodyVia: p?.bodyVia ?? null,
     };
-  });
+  }).filter((it) => !it.dupOf); // 被合并的重复报道不在页面上单独展示
   // 产品条目始终保留；资讯条目按兴趣分过滤低分
   const kept = items.filter((it) => it.product || !it.en || it.en.score >= 3);
   const filtered = items.filter((it) => !it.product && it.en && it.en.score <= 2);
@@ -772,8 +815,8 @@ async function main() {
     .filter((r) => !r.vendor)
     .flatMap((r) => r.items.map((it) => ({ ...it, source: r.name })));
   // 产品追踪优先，其次资讯；同链接只保留一条
-  const flat = dedupeByLink([...productItems, ...newsFlat]);
-  const total = flat.length;
+  let flat = dedupeByLink([...productItems, ...newsFlat]);
+  let total = flat.length;
 
   let enriched = null;
   let aiNote = '';
@@ -783,6 +826,16 @@ async function main() {
       enriched = await enrichWithLLM(flat);
     } catch (err) {
       aiNote = `AI 加工失败（${err.message}），本次展示原始抓取`;
+    }
+  }
+
+  // 多源去重：同一事件的多篇报道合并成一条（依赖 AI 摘要与评分，降级模式跳过）
+  if (enriched) {
+    try {
+      flat = await dedupeNews(flat);
+      total = flat.filter((it) => !it.dupOf).length;
+    } catch (err) {
+      console.warn(`⚠ 多源去重整体失败（${err.message}），本次不合并`);
     }
   }
 
@@ -846,6 +899,8 @@ async function main() {
   .ppts-line { margin: 6px 0 0; font-size: .9rem; color: #374151; line-height: 1.65; }
   .ppts-note { margin: 6px 0 0; font-size: .78rem; color: #b45309; }
   .ppts-meta { margin: 6px 0 0; font-size: .75rem; color: #9ca3af; }
+  .related { margin: 6px 0 0; font-size: .78rem; color: #6b7280; }
+  .related a { color: #4338ca; text-decoration: underline; }
   footer { margin-top: 40px; color: #9ca3af; font-size: .8rem; border-top: 1px solid #e5e7eb; padding-top: 12px; }
 </style>
 </head>
@@ -886,6 +941,9 @@ ${body}
         pointsReason: p?.points ? p.bodyReason : (p?.bodyReason ?? null),
         bodyChars: p?.bodyChars ?? null,
         bodyVia: p?.bodyVia ?? null,
+        // 多源去重：dupOf 表示这条被合并进哪个主条目；related 是主条目挂的其他报道
+        dupOf: it.dupOf ?? null,
+        related: it.related ?? null,
       };
     }),
   };

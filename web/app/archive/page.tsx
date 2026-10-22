@@ -1,11 +1,14 @@
 import { queryItems, type ItemRow } from "@/lib/db";
+import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
 
 // 历史页：按期号（北京时间日期）分组，展示全部条目
 export const dynamic = "force-dynamic";
 
 export default async function Archive() {
-  const items = await queryItems("SELECT * FROM items ORDER BY date DESC, id DESC");
+  // 被多源去重合并的报道不重复展示；主条目带有「相关报道」链接
+  const items = (await queryItems("SELECT * FROM items ORDER BY date DESC, id DESC"))
+    .filter((it) => !it.dup_of);
 
   const groups = new Map<string, ItemRow[]>();
   for (const it of items) {
@@ -32,7 +35,9 @@ export default async function Archive() {
             {issue === "更早" ? "更早（未分期）" : issue}{" "}
             <span className="text-xs font-normal text-zinc-400">{list.length} 条</span>
           </h2>
-          {list.map((it) => <ItemCard key={it.id} item={it} />)}
+          {list.map((it) => (
+            <ItemCard key={it.id} item={it} related={parseRelated(it.related)} />
+          ))}
         </section>
       ))}
     </div>
