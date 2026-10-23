@@ -85,7 +85,7 @@
 | `LLM_API_KEY`（智谱） | 本地 `.env`（已 gitignore）；GitHub Secrets |
 | `LIBSQL_URL` / `LIBSQL_AUTH_TOKEN`（Turso） | 本地 `web/.env.cloud`（已 gitignore）；GitHub Secrets；Netlify 环境变量 |
 | `NETLIFY_AUTH_TOKEN`（部署用） | GitHub Secrets |
-| `APP_PASSWORD`（可选访问密码） | Netlify 环境变量（运行时读取）；也可放 GitHub Secrets |
+| `APP_PASSWORD`（可选访问密码） | Netlify 环境变量（运行时读取） |
 | `BACKUP_PASSPHRASE`（备份口令） | GitHub Secrets（backup 工作流） |
 
 以上文件均被 `.gitignore` 覆盖，已确认不会进入公开仓库。若需轮换密钥：在对应平台重新生成后，同步更新上述三个存放位置。
@@ -640,8 +640,7 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 - 新增 `/login` 登录页、`POST/DELETE /api/auth`（登录/退出）；设置页底部增加「退出登录」。
 - 未登录访问页面会 307 到 `/login?next=...`；访问 API 返回 401。
 - 实测确认 `APP_PASSWORD` 是**运行时读取**：不重新构建，只设置环境变量即可生效。
-  因此线上只需在 **Netlify 环境变量**里配置，不需要 GitHub Secret（deploy-web 里也顺手传了，
-  配置了也无害）。
+  因此线上只需在 **Netlify 环境变量**里配置，不需要 GitHub Secret；deploy-web 也不再传这个变量。
 
 验证：未登录首页 307、API 401、登录页 200、错误密码 401；正确密码 200 并写入 cookie；
 带 cookie 首页/API 200；退出后 cookie 清空、首页重新 307。
