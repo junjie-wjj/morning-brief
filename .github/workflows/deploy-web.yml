@@ -25,3 +25,5 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: e49fc22b-09f2-4f2e-8337-0eb891365947
+          # 访问密码在构建时注入 proxy；未配置该 secret 时不启用鉴权
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}

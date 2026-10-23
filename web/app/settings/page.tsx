@@ -19,7 +19,11 @@ export default async function SettingsPage() {
           设置只影响首页的显示，不会删除任何数据；关掉筛选即可恢复全部内容（历史页始终完整）。
         </p>
       </header>
-      <SettingsForm initial={settings} options={options} />
+      <SettingsForm
+        initial={settings}
+        options={options}
+        authEnabled={Boolean(process.env.APP_PASSWORD?.trim())}
+      />
     </div>
   );
 }

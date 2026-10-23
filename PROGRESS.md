@@ -85,6 +85,8 @@
 | `LLM_API_KEY`（智谱） | 本地 `.env`（已 gitignore）；GitHub Secrets |
 | `LIBSQL_URL` / `LIBSQL_AUTH_TOKEN`（Turso） | 本地 `web/.env.cloud`（已 gitignore）；GitHub Secrets；Netlify 环境变量 |
 | `NETLIFY_AUTH_TOKEN`（部署用） | GitHub Secrets |
+| `APP_PASSWORD`（可选访问密码） | Netlify 环境变量（运行时读取）；也可放 GitHub Secrets |
+| `BACKUP_PASSPHRASE`（备份口令） | GitHub Secrets（backup 工作流） |
 
 以上文件均被 `.gitignore` 覆盖，已确认不会进入公开仓库。若需轮换密钥：在对应平台重新生成后，同步更新上述三个存放位置。
 
@@ -626,3 +628,41 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 - 页面体积：首页 271KB、历史第 1/2 页各约 198KB（修复前 2.06MB）。
 - 乐观更新：延迟 API 3 秒，按钮 150ms 内变绿，请求完成后保持激活。
 - `tsc`、`eslint`、`npm run build` 通过；测试 81/81。
+
+## 访问密码与加密备份（2026-10-23）
+
+### 访问密码（可选）
+
+- 新增 `web/proxy.ts`（Next 16 的 proxy/middleware）：只有设置了 `APP_PASSWORD` 才启用。
+  未设置时保持公开访问，本地开发无需登录。
+- 登录成功写入 30 天 HttpOnly cookie，值是密码的 SHA-256，不存明文；
+  `SameSite=Lax`，HTTPS 下自动加 `Secure`。
+- 新增 `/login` 登录页、`POST/DELETE /api/auth`（登录/退出）；设置页底部增加「退出登录」。
+- 未登录访问页面会 307 到 `/login?next=...`；访问 API 返回 401。
+- 实测确认 `APP_PASSWORD` 是**运行时读取**：不重新构建，只设置环境变量即可生效。
+  因此线上只需在 **Netlify 环境变量**里配置，不需要 GitHub Secret（deploy-web 里也顺手传了，
+  配置了也无害）。
+
+验证：未登录首页 307、API 401、登录页 200、错误密码 401；正确密码 200 并写入 cookie；
+带 cookie 首页/API 200；退出后 cookie 清空、首页重新 307。
+
+### 加密备份（每周）
+
+- `web/scripts/backup.mjs`：导出 `items` / `settings` / `feedback`，
+  用 scrypt 派生密钥 + AES-256-GCM 加密，输出 `web/data/backup-YYYY-MM-DD.enc`。
+- `web/scripts/restore.mjs`：解密 + 恢复；`--dry-run` 只校验，`--yes` 才写入。
+  items 按 link upsert（含已读/稍后读），settings/feedback 清空后覆盖。
+- `.github/workflows/backup.yml`：每周一北京时间 02:00 自动运行，加密文件作为 Artifact 保留 90 天。
+  公开仓库的 artifact 即使被下载，没有 `BACKUP_PASSPHRASE` 也解不开。
+- `web/package.json` 新增 `backup` / `restore` 脚本。
+
+验证：云端备份 428 条条目 / 12 条反馈；正确口令可 dry-run 解密，错误口令报
+「Unsupported state or unable to authenticate data」；恢复到临时库后三项数量完全一致。
+测试用的备份文件、临时库已删除。
+
+### 需要你配置的两项
+
+1. **Netlify** → Site settings → Environment variables → 添加 `APP_PASSWORD`（访问密码）。
+2. **GitHub** → Settings → Secrets and variables → Actions → 添加 `BACKUP_PASSPHRASE`（备份口令）。
+
+两个口令不要相同；备份口令丢了备份就无法恢复。

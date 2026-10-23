@@ -12,7 +12,9 @@
     "backfill": "node scripts/backfill.mjs",
     "backfill:local": "node scripts/backfill.mjs --local",
     "export:preferences": "node scripts/export-feedback.mjs",
-    "export:preferences:local": "node scripts/export-feedback.mjs --local"
+    "export:preferences:local": "node scripts/export-feedback.mjs --local",
+    "backup": "node scripts/backup.mjs",
+    "restore": "node scripts/restore.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

@@ -65,9 +65,11 @@ function Chip({
 export default function SettingsForm({
   initial,
   options,
+  authEnabled = false,
 }: {
   initial: Settings;
   options: { tags: string[]; sources: string[]; products: string[] };
+  authEnabled?: boolean;
 }) {
   const router = useRouter();
   const [s, setS] = useState<Settings>(initial);
@@ -101,6 +103,11 @@ export default function SettingsForm({
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     startTransition(() => router.refresh());
+  }
+
+  async function logout() {
+    await fetch("/api/auth", { method: "DELETE" });
+    router.replace("/login");
   }
 
   return (
@@ -214,6 +221,14 @@ export default function SettingsForm({
         >
           已保存
         </span>
+        {authEnabled ? (
+          <button
+            onClick={logout}
+            className="ml-auto text-xs text-muted transition-colors hover:text-rose-600"
+          >
+            退出登录
+          </button>
+        ) : null}
       </div>
     </div>
   );

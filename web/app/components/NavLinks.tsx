@@ -13,6 +13,9 @@ const ITEMS = [
 export default function NavLinks() {
   const pathname = usePathname();
 
+  // 登录页不显示主导航，避免点了又被拦回登录页
+  if (pathname === "/login") return null;
+
   return (
     <nav className="flex items-center gap-0.5 overflow-x-auto sm:gap-1" aria-label="主导航">
       {ITEMS.map((item) => {

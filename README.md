@@ -23,6 +23,49 @@ npm run seed           # 导入本地数据库（开发用）
 npm run seed:cloud     # 导入云端 Turso（线上应用的数据源，需要 web/.env.cloud）
 ```
 
+## 访问密码（可选）
+
+默认不启用。在 **Netlify → Site settings → Environment variables** 添加 `APP_PASSWORD` 后，
+所有页面和 API 都需要先登录：
+
+- 登录页：`/login`；登录成功后写入 30 天 HttpOnly cookie。
+- 退出登录：设置页底部（仅在启用密码时显示）。
+- 本地测试：`APP_PASSWORD=test123 npm start`（或 `npm run dev`），不需要重新构建。
+- 忘记密码：在 Netlify 改一个新值，旧 cookie 会自动失效。
+- 未设置 `APP_PASSWORD` 时保持公开访问，方便本地开发。
+
+注意：密码只保护访问，不加密数据库内容；数据在 Turso 中仍是明文（传输走 HTTPS）。
+
+## 数据备份（每周，加密）
+
+`backup` 工作流每周一北京时间 02:00 把云端数据库导出并加密，作为 GitHub Actions Artifact 保留 90 天。
+
+备份内容：`items`（含已读/稍后读）、`settings`、`feedback`。
+
+启用步骤：
+
+1. GitHub → Settings → Secrets and variables → Actions，添加 `BACKUP_PASSPHRASE`
+   （备份口令，不要和登录密码相同）。
+2. 已有的 `LIBSQL_URL` / `LIBSQL_AUTH_TOKEN` secret 会被复用。
+3. 手动触发：Actions → backup → Run workflow。
+
+本地手动备份/恢复：
+
+```bash
+cd web
+BACKUP_PASSPHRASE=你的口令 npm run backup            # 云端
+BACKUP_PASSPHRASE=你的口令 npm run backup -- --local # 本地库
+
+BACKUP_PASSPHRASE=你的口令 npm run restore -- --file data/backup-YYYY-MM-DD.enc --dry-run
+BACKUP_PASSPHRASE=你的口令 npm run restore -- --file data/backup-YYYY-MM-DD.enc --yes
+```
+
+加密方式是 AES-256-GCM + scrypt：artifact 即使被下载，没有口令也解不开。
+**口令丢失 = 备份无法恢复**，请存到密码管理器。
+
+恢复行为：`items` 按 `link` upsert（包含已读/稍后读状态），`settings` / `feedback` 清空后按备份覆盖；
+建议先跑 `--dry-run` 确认条数。
+
 ## 筛选与个性化（顶栏「设置」）
 
 首页只展示你关心的内容，规则全部可调（`/settings`）：
