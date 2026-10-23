@@ -110,28 +110,53 @@ export default function ItemCard({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
+  // 乐观状态：点击后立即变色，不等服务器往返；失败再回滚并提示。
+  // 这里刻意不做 props→state 的同步：成功时本地状态与服务器结果一致，
+  // 失败时回滚；跨设备的外部变更会在下一次整页加载时体现。
+  const [localVerdict, setLocalVerdict] = useState(verdict);
+  const [localStatus, setLocalStatus] = useState(item.status);
+  const [error, setError] = useState("");
 
   async function setStatus(status: "unread" | "read" | "later") {
-    await fetch(`/api/items/${item.id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    startTransition(() => router.refresh());
+    const prev = localStatus;
+    setLocalStatus(status);
+    setError("");
+    try {
+      const res = await fetch(`/api/items/${item.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      startTransition(() => router.refresh());
+    } catch {
+      setLocalStatus(prev);
+      setError("操作失败，请重试");
+    }
   }
 
   // 👍/👎：再点一次同一按钮表示撤销；点👎后条目会从首页隐藏（可在设置里关闭）
   async function sendFeedback(next: "up" | "down") {
-    await fetch("/api/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ link: item.link, verdict: verdict === next ? null : next }),
-    });
-    startTransition(() => router.refresh());
+    const prev = localVerdict;
+    const nextVerdict = localVerdict === next ? null : next;
+    setLocalVerdict(nextVerdict);
+    setError("");
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ link: item.link, verdict: nextVerdict }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      startTransition(() => router.refresh());
+    } catch {
+      setLocalVerdict(prev);
+      setError("操作失败，请重试");
+    }
   }
 
-  const isRead = item.status === "read";
-  const isLater = item.status === "later";
+  const isRead = localStatus === "read";
+  const isLater = localStatus === "later";
   const title = item.zh_title ?? item.title;
   const hasPoints = Boolean(item.points);
   const isFeatured = variant === "featured";
@@ -143,12 +168,20 @@ export default function ItemCard({
   //   · 用 keepalive 发请求 —— 新标签页打开后本页可能转入后台，普通请求会被中断。
   function markReadOnOpen() {
     if (isRead || isLater) return;
+    const prev = localStatus;
+    setLocalStatus("read");
     void fetch(`/api/items/${item.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "read" }),
       keepalive: true,
-    }).then(() => startTransition(() => router.refresh()));
+    }).then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      startTransition(() => router.refresh());
+    }).catch(() => {
+      setLocalStatus(prev);
+      setError("标记已读失败");
+    });
   }
 
   // 卡片空白处：就地展开「原文精简版」，不跳转、不新开标签。
@@ -301,6 +334,9 @@ export default function ItemCard({
           {!isCompact && item.zh_title && item.zh_title !== item.title ? (
             <span className="hidden truncate text-stone-400 md:inline">· 原标题：{item.title}</span>
           ) : null}
+          {error ? (
+            <span className="shrink-0 text-rose-600" role="status" aria-live="polite">· {error}</span>
+          ) : null}
         </span>
 
         {/* 按钮区阻止冒泡，避免点「已读/稍后读」时顺带展开 */}
@@ -310,7 +346,7 @@ export default function ItemCard({
         >
           <ActionIcon
             label="有用，多推这类"
-            active={verdict === "up"}
+            active={localVerdict === "up"}
             activeClass="border-emerald-200 bg-emerald-50 text-emerald-700"
             onClick={() => sendFeedback("up")}
           >
@@ -318,7 +354,7 @@ export default function ItemCard({
           </ActionIcon>
           <ActionIcon
             label="不感兴趣，少推这类"
-            active={verdict === "down"}
+            active={localVerdict === "down"}
             activeClass="border-rose-200 bg-rose-50 text-rose-700"
             onClick={() => sendFeedback("down")}
           >

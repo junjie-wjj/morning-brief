@@ -38,7 +38,12 @@ function greeting() {
 export default async function Home() {
   // 只展示最新一期：避免首页被上线以来的全部历史条目淹没。
   // 没有期号的老数据（迁移前的库）退回展示全部，避免页面空白。
-  const latestIssue = (await queryItems("SELECT MAX(issue) AS issue FROM items"))[0]?.issue ?? null;
+  // 期号、筛选、反馈、偏好统计互不依赖，一次并行查完，少一个数据库往返。
+  const [issueRows, settings, feedback, stats] = await Promise.all([
+    queryItems("SELECT MAX(issue) AS issue FROM items"),
+    getSettings(), getFeedback(), getPreferenceStats(),
+  ]);
+  const latestIssue = issueRows[0]?.issue ?? null;
   const rawItems = latestIssue
     ? await queryItems("SELECT * FROM items WHERE issue = ? ORDER BY score DESC, date DESC, id DESC", latestIssue)
     : await queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
@@ -46,9 +51,6 @@ export default async function Home() {
   const items = rawItems.filter((it) => !it.dup_of);
 
   // 筛选偏好 + 用户反馈（👍/👎 会影响排序与显示）
-  const [settings, feedback, stats] = await Promise.all([
-    getSettings(), getFeedback(), getPreferenceStats(),
-  ]);
   const ctx: FilterContext = { settings, feedback, stats };
 
   // 产品追踪与资讯分开：产品条目只看「关注清单」，资讯走完整筛选

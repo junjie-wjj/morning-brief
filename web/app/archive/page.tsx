@@ -1,18 +1,34 @@
-import { getFeedback, queryItems, type ItemRow } from "@/lib/db";
+import Link from "next/link";
+import { execute, getFeedback, queryItems, type ItemRow } from "@/lib/db";
 import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
-import { IconCalendar } from "../components/Icons";
+import { IconCalendar, IconChevronDown } from "../components/Icons";
 
-// 历史页：按期号（北京时间日期）分组，展示全部条目
+// 历史页：按期号（北京时间日期）分组，分页展示，避免一次渲染全部历史拖慢手机。
 export const dynamic = "force-dynamic";
 
-export default async function Archive() {
-  // 被多源去重合并的报道不重复展示；主条目带有「相关报道」链接
-  const [allItems, feedback] = await Promise.all([
-    queryItems("SELECT * FROM items ORDER BY date DESC, id DESC"),
+const PAGE_SIZE = 40;
+
+export default async function Archive({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const [items, countResult, feedback] = await Promise.all([
+    queryItems(
+      "SELECT * FROM items WHERE dup_of IS NULL ORDER BY date DESC, id DESC LIMIT ? OFFSET ?",
+      PAGE_SIZE,
+      offset,
+    ),
+    execute("SELECT COUNT(*) AS n FROM items WHERE dup_of IS NULL", []),
     getFeedback(),
   ]);
-  const items = allItems.filter((it) => !it.dup_of);
+  const total = Number(countResult.rows[0]?.n ?? 0);
+  const hasOlder = page * PAGE_SIZE < total;
 
   const groups = new Map<string, ItemRow[]>();
   for (const it of items) {
@@ -32,9 +48,10 @@ export default async function Archive() {
         <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-ink">
           历史
           <span className="ml-2 align-middle font-sans text-xs font-normal text-muted">
-            {items.length} 条 · {entries.length} 期
+            第 {page} 页 · 共 {total} 条
           </span>
         </h1>
+        <p className="mt-2 text-xs text-muted">每页 {PAGE_SIZE} 条，按时间倒序；更早的内容用页尾按钮翻页。</p>
       </header>
 
       {items.length === 0 && <p className="mt-6 text-sm text-muted">还没有历史数据。</p>}
@@ -59,6 +76,29 @@ export default async function Archive() {
           </div>
         </section>
       ))}
+
+      <nav className="mt-10 flex items-center justify-between gap-3 border-t border-line pt-4 text-sm">
+        {page > 1 ? (
+          <Link
+            href={`/archive?page=${page - 1}`}
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-4 py-2 text-ink-soft hover:border-amber-300 hover:text-amber-800"
+          >
+            <IconChevronDown className="h-4 w-4 rotate-90" />
+            较新的一页
+          </Link>
+        ) : <span />}
+        {hasOlder ? (
+          <Link
+            href={`/archive?page=${page + 1}`}
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-4 py-2 text-ink-soft hover:border-amber-300 hover:text-amber-800"
+          >
+            更早的一页
+            <IconChevronDown className="h-4 w-4 -rotate-90" />
+          </Link>
+        ) : (
+          <span className="text-xs text-muted">已经是最后一页</span>
+        )}
+      </nav>
     </div>
   );
 }
