@@ -99,6 +99,15 @@ try {
   data.userSettings = { blockedKeywords: [], blockMode: 'hide', dropLowScore: false };
 }
 
+// OpenRouter 免费模型监控的昨日快照（id 列表）：brief.mjs 拿它做跨天 diff。
+// 没有快照（首次运行）输出空数组，brief.mjs 只存快照不播报。
+try {
+  const rs = await db.execute("SELECT value FROM settings WHERE key = 'openrouter_free'");
+  data.openrouterFree = rs.rows[0] ? JSON.parse(rs.rows[0].value) : [];
+} catch {
+  data.openrouterFree = [];
+}
+
 mkdirSync(path.dirname(outFile), { recursive: true });
 writeFileSync(outFile, JSON.stringify(data, null, 2));
 

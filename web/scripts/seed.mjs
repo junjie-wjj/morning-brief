@@ -143,3 +143,13 @@ try {
 } catch {
   /* 偏好文件不存在（本地 seed / 导出步骤失败）时跳过，不影响导入 */
 }
+
+// OpenRouter 免费模型快照回写：明天 brief.mjs 靠它 diff 出新增/下架。
+// 只有 data.json 带快照（今天抓取成功）才覆盖，失败日保留昨天的旧快照。
+if (Array.isArray(data.openrouterFree)) {
+  await db.execute({
+    sql: "INSERT INTO settings (key, value) VALUES ('openrouter_free', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    args: [JSON.stringify(data.openrouterFree)],
+  });
+  console.log(`OpenRouter 快照已保存：${data.openrouterFree.length} 个免费模型`);
+}

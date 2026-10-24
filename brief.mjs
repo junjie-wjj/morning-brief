@@ -8,7 +8,9 @@ const SOURCES = [
   { name: 'Google DeepMind · 官方博客',   type: 'rss',       url: 'https://deepmind.google/blog/rss.xml',       max: 5, days: 7, vendor: 'deepmind' },
   { name: 'Anthropic · 官方新闻',         type: 'anthropic', url: 'https://www.anthropic.com/news',             max: 5, days: 7, vendor: 'anthropic' },
   // DeepSeek / 智谱的 GitHub 发布已并入下面的 PRODUCTS（避免重复抓取）
-  { name: '免费 LLM API 动态',            type: 'gh-commits', repo: 'mnfst/awesome-free-llm-apis',              max: 4 },
+  // commitGate：这个仓库每天有大量文档维护类提交（"sync docs"/"merge PR"），
+  // 用户明确反馈那类流水账是噪音——只有提交消息含额度实质词才入库
+  { name: '免费 LLM API 动态',            type: 'gh-commits', repo: 'mnfst/awesome-free-llm-apis',              max: 4, fetch: 30, commitGate: /free|免费|额度|token|credit|限免/i },
   { name: 'Hacker News · AI 热帖',        type: 'hn-ai',                                                        max: 10, days: 2 },
   { name: 'Hugging Face · 官方博客',      type: 'rss',       url: 'https://huggingface.co/blog/feed.xml',       max: 5, days: 7 },
   { name: 'r/LocalLLaMA · 社区热帖',      type: 'rss',       url: 'https://www.reddit.com/r/LocalLLaMA/.rss',   max: 5, days: 3 },
@@ -245,14 +247,18 @@ async function fetchHnAi(source) {
 // 监控"免费 LLM API 汇总"类仓库的提交（这类福利信息的更新都以 commit 形式出现）
 async function fetchGhCommits(source) {
   const commits = JSON.parse(await fetchText(
-    `https://api.github.com/repos/${source.repo}/commits?per_page=${source.max}`,
+    `https://api.github.com/repos/${source.repo}/commits?per_page=${source.fetch ?? source.max}`,
     { Accept: 'application/vnd.github+json' },
   ));
-  return commits.map((c) => ({
-    title: (c.commit?.message ?? '').split('\n')[0].slice(0, 100) || '(无信息)',
-    link: c.html_url,
-    date: new Date(c.commit?.committer?.date),
-  }));
+  return commits
+    .map((c) => ({
+      title: (c.commit?.message ?? '').split('\n')[0].slice(0, 100) || '(无信息)',
+      link: c.html_url,
+      date: new Date(c.commit?.committer?.date),
+    }))
+    // 关键词闸门：多抓一些再筛，只有命中实质词的提交才配占每日条目名额
+    .filter((it) => !source.commitGate || source.commitGate.test(it.title))
+    .slice(0, source.max);
 }
 
 // ---------- AI 加工：中文标题 + 摘要 + 分类 + 兴趣打分（OpenAI 兼容接口） ----------
@@ -314,7 +320,15 @@ async function enrichBatch(chunk) {
 - zh：中文标题（15 字左右；原文已是中文则沿用；专有名词保留英文，如 GPT、Claude、DeepSeek）
 - s：一两句中文摘要，讲清"发生了什么 + 为什么值得注意"，不写套话
 - tag：从这些里选一个：模型发布 / 产品动态 / 研究进展 / 福利资源 / 行业动态 / 其他
-- score：1-5 兴趣分，读者画像是"追踪大模型动态、喜欢收集免费额度的个人开发者"。营销软文给 1-2；重要模型发布、免费额度、开源项目给 4-5。
+- score：1-5 兴趣分。读者画像（按真实反馈校准）：个人开发者，关注五类——
+  ① 新模型发布（尤其中文厂商 DeepSeek/GLM/Qwen/Kimi/MiniMax）；
+  ② 真实可用的免费额度与限免（免费 token、积分、免费 API 档位、限免模型）；
+  ③ API 价格与成本变动（涨价/降价/免费档调整）；
+  ④ MCP、插件、技能与开源实用工具（能装能用的能力扩展）；
+  ⑤ AI 编程工具动态（Claude Code/Cursor/Codex/OpenCode 等）。
+  打分：新模型发布、真免费额度、重大价格变动给 4-5；工具生态与编程工具动态给 4；
+  一般资讯给 3；学术论文、合作收购通稿、无关行业（汽车/娱乐/政策）、不含额度的功能
+  软文、commit 流水账给 1-2。
 
 条目：${listing}
 
@@ -647,6 +661,55 @@ async function fetchPreferenceNews(source) {
     .slice(0, source.max ?? 8);
 }
 
+// ---------- 固定搜索：不依赖反馈统计、每天必跑的关注方向 ----------
+// 与偏好搜索（反馈驱动）互补；match 是标题必须命中的正则，拦搜索引擎的模糊噪音。
+// 2026-10-24 用户确认的关注清单：免费额度 / 榜单 / MCP·插件·技能 / 价格。
+const FIXED_SEARCH_TERMS = [
+  { term: 'AI free credits 免费 token 额度', label: '免费额度',
+    match: 'free|免费|额度|token|credit|限免|白嫖' },
+  { term: 'AI model leaderboard benchmark', label: '榜单动态',
+    match: 'leaderboard|benchmark|artificial analysis|lmarena|swe-?bench|榜单|排名第一|登顶|排名' },
+  { term: 'MCP server AI plugin skill', label: 'MCP/插件/技能',
+    match: 'mcp|plugin|插件|skill|技能|agent' },
+  { term: 'AI API pricing 降价 涨价', label: '价格变动',
+    match: 'price|pricing|降价|涨价|调价|成本' },
+];
+
+// ---------- OpenRouter 免费模型监控：盯列表页的变化，不靠新闻 ----------
+// 快照状态经「云端 settings(openrouter_free) → export-feedback → preferences.json →
+// brief.mjs → data.json → seed.mjs 回写云端」往返，CI 无状态也能跨天 diff。
+// 首次运行只存快照不播报（否则会把全部 20+ 个模型当成"新增"刷屏）。
+async function fetchOpenRouterFree(source) {
+  const { parseFreeModels, diffFreeModels } = await import('./lib/openrouter.mjs');
+  const json = JSON.parse(await fetchText('https://openrouter.ai/api/v1/models'));
+  const current = parseFreeModels(json);
+  const prevIds = Array.isArray(source.prevIds) ? source.prevIds : [];
+  source.onSnapshot?.(current.map((m) => m.id));
+
+  if (!prevIds.length) {
+    console.log(`  ℹ OpenRouter 免费模型：首次快照 ${current.length} 个，明天开始报变化`);
+    return [];
+  }
+  const { added, removed, unchanged } = diffFreeModels(prevIds, current);
+  const now = new Date();
+  const items = [
+    ...added.map((m) => ({
+      title: `OpenRouter 新增免费模型：${m.name}（${m.id}）`,
+      link: `https://openrouter.ai/${m.id}`,
+      date: now,
+    })),
+    ...removed.map((m) => ({
+      title: `OpenRouter 免费模型下架：${m.name}`,
+      link: `https://openrouter.ai/${m.id}`,
+      date: now,
+    })),
+  ];
+  if (added.length || removed.length) {
+    console.log(`  ℹ OpenRouter 免费模型：新增 ${added.length} / 下架 ${removed.length} / 不变 ${unchanged}`);
+  }
+  return items.slice(0, 6);
+}
+
 /** 逐个产品抓取第一手更新；单个来源失败只影响该产品，不阻塞其他产品 */
 async function fetchProducts(vendorItems) {
   const out = [];
@@ -727,7 +790,7 @@ async function fetchSource(source) {
     const fetchers = {
       rss: fetchRss, anthropic: fetchAnthropic,
       'hn-ai': fetchHnAi, gh: fetchGitHubReleases, 'gh-commits': fetchGhCommits,
-      prefs: fetchPreferenceNews,
+      prefs: fetchPreferenceNews, 'openrouter-free': fetchOpenRouterFree,
     };
     const fetcher = fetchers[source.type];
     if (!fetcher) throw new Error(`未知源类型 ${source.type}`);
@@ -1021,6 +1084,23 @@ async function main() {
       days: 7,
     });
   }
+  // 固定搜索：用户确认的四个关注方向，不依赖反馈统计
+  sources.push({
+    name: '固定搜索 · 额度/榜单/工具/价格',
+    type: 'prefs',
+    terms: FIXED_SEARCH_TERMS,
+    max: 10,
+    days: 7,
+  });
+  // OpenRouter 免费模型监控：昨天的快照来自云端（经偏好文件带出），今天的快照抓完存变量
+  let openRouterSnapshot = null;
+  sources.push({
+    name: 'OpenRouter · 免费模型监控',
+    type: 'openrouter-free',
+    max: 6,
+    prevIds: Array.isArray(prefStats?.openrouterFree) ? prefStats.openrouterFree : [],
+    onSnapshot: (ids) => { openRouterSnapshot = ids; },
+  });
   const results = await Promise.all(sources.map(fetchSource));
   const okResults = results.filter((r) => r.status === 'ok');
   const failedCount = results.length - okResults.length;
@@ -1132,6 +1212,8 @@ async function main() {
     deduped: dedupOk,
     // 本次实际启用的偏好搜索词，便于排查「为什么多/少了这些条目」
     preferenceTerms: prefTerms.map((t) => ({ term: t.term, kind: t.kind, label: t.label, net: t.net })),
+    // OpenRouter 免费模型的今日快照（seed.mjs 回写云端，明天 diff 用）；抓取失败时为 null 不覆盖
+    openrouterFree: openRouterSnapshot,
     items: flat.map((it) => {
       const p = pointsMap.get(it.link);
       return {

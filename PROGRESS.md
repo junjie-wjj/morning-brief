@@ -862,3 +862,34 @@ seed 的 `issue = excluded.issue` 每天把仍在抓取窗口（最长 7 天）�
 - 仅隐藏（默认）：照常抓取存档，首页不显示，历史页可见可搜，删词恢复。
 - 彻底不抓：加工前丢弃 + 每日清理已入库同类（不可恢复）；只能匹配原始标题。
 - 低分不入库：仅影响每日新增，产品动态与未打分条目豁免；开启后次日生效。
+
+## 关注方向升级：额度/榜单/MCP·插件·技能/价格 + OpenRouter 监控（2026-10-25 凌晨）
+
+### 背景
+
+用户对系统学到的画像做了三条关键纠正（115 条反馈）：
+① 喜欢**真·免费额度**情报（发 token、限免、白嫖活动），此前踩的是 commit 流水账，不是福利本身；
+② 带免费积分的活动软文有价值；
+③ 不想看的是"合作通稿"而非 OpenAI 主体。并要求补充社区热门关注方向。
+
+### 交付（用户逐项确认后开工）
+
+1. **commit 闸门**（brief.mjs fetchGhCommits + 源配置）：免费 LLM API 仓库的提交
+   只有消息含 free/免费/额度/token/credit/限免 才入库，fetch 30 取 max 4。
+   实测：最近 30 条提交 23 条流水账被拦，留下的全是实质额度情报。
+2. **固定搜索**（FIXED_SEARCH_TERMS，每天必跑，不依赖反馈净赞）：
+   免费额度 / 榜单动态（leaderboard·AA·benchmark）/ MCP·插件·技能 / 价格变动，
+   复用偏好搜索的 gnews+HN 双通道与标题 match 过滤，max 10。
+3. **OpenRouter 免费模型监控**（lib/openrouter.mjs + fetchOpenRouterFree）：
+   每天拉 /api/v1/models，真免费 = prompt 与 completion 都为 0（防"免费输入陷阱"），
+   与昨日快照 diff 只报新增/下架；快照经「云端 settings(openrouter_free) →
+   export-feedback → preferences.json → data.json → seed 回写云端」往返实现 CI 无状态跨天。
+   首次运行只存快照不播报。实测当前 20 个免费模型。
+4. **打分画像换新**（enrichBatch 提示词）：五类关注（新模型发布·尤中文厂商 / 真免费额度 /
+   价格成本 / MCP·插件·技能·开源工具 / 编程工具）+ 明确反感项（论文·合作通稿·
+   无关行业·无额度软文·流水账），全部来自用户确认的画像。
+
+### 验证
+
+- 新增 5 个单测（openrouter 解析/diff），全套 102/102 通过；三段脚本语法检查通过。
+- 三项新抓取逐一联网实测（OpenRouter 200/20 免费模型、闸门 23/30 拦截、gnews 200）。
