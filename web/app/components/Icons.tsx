@@ -45,6 +45,14 @@ export function IconSearch({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+export function IconTrash({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+    </svg>
+  );
+}
+
 export function IconThumbsUp({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg {...base} className={className}>

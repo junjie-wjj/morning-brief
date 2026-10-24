@@ -3,6 +3,7 @@ import { execute, getFeedback, queryItems, type ItemRow } from "@/lib/db";
 import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
 import MarkAllReadButton from "../components/MarkAllReadButton";
+import DeleteDownvotedButton from "../components/DeleteDownvotedButton";
 import { IconCalendar, IconChevronDown, IconSearch } from "../components/Icons";
 
 // 历史页：按期号（北京时间日期）分组、分页；关键词搜索（标题/摘要/原文精简版，
@@ -73,18 +74,21 @@ export default async function Archive({
           "SELECT issue, COUNT(*) AS n FROM items WHERE dup_of IS NULL AND issue IS NOT NULL GROUP BY issue ORDER BY issue DESC",
           [],
         ).then((r) => r.rows as unknown as { issue: string | null; n: number }[]),
-    // 一键已读的确认数：当前浏览范围（不跟随搜索词）内的未读条数
+    // 一键已读 / 删除全部点踩 的确认数：当前浏览范围（不跟随搜索词）内统计
     q
-      ? Promise.resolve([{ n: 0 }])
+      ? Promise.resolve([{ unread: 0, downed: 0 }])
       : execute(
-          `SELECT COUNT(*) AS n FROM items WHERE dup_of IS NULL AND status = 'unread' ${
-            issueSel ? "AND issue = ?" : ""
-          } ${hideDown ? "AND link NOT IN (SELECT link FROM feedback WHERE verdict = 'down')" : ""}`,
+          `SELECT
+             (SELECT COUNT(*) FROM items WHERE dup_of IS NULL AND status = 'unread' ${
+               issueSel ? "AND issue = ?" : ""
+             } ${hideDown ? "AND link NOT IN (SELECT link FROM feedback WHERE verdict = 'down')" : ""}) AS unread,
+             (SELECT COUNT(*) FROM items WHERE dup_of IS NULL AND link IN (SELECT link FROM feedback WHERE verdict = 'down')) AS downed`,
           issueSel ? [issueSel] : [],
-        ).then((r) => r.rows as unknown as { n: number }[]),
+        ).then((r) => r.rows as unknown as { unread: number; downed: number }[]),
   ]);
   const total = Number(countResult.rows[0]?.n ?? 0);
-  const unreadTotal = Number(unreadRows[0]?.n ?? 0);
+  const unreadTotal = Number(unreadRows[0]?.unread ?? 0);
+  const downedTotal = Number(unreadRows[0]?.downed ?? 0);
   const hasOlder = page * PAGE_SIZE < total;
 
   // 链接构造统一走这里，保证翻页/切换时携带全部当前状态
@@ -230,6 +234,7 @@ export default async function Archive({
               >
                 {hideDown ? "已隐藏点踩条目 ✓" : "隐藏点踩条目"}
               </Link>
+              <DeleteDownvotedButton count={downedTotal} />
               {issueSel ? (
                 <Link href="/archive" className="text-amber-800 underline underline-offset-2 hover:text-amber-900">
                   查看全部

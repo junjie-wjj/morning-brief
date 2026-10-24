@@ -11,6 +11,7 @@ import {
   IconSparkles,
   IconThumbsDown,
   IconThumbsUp,
+  IconTrash,
 } from "./Icons";
 
 type Variant = "default" | "featured" | "compact";
@@ -139,6 +140,8 @@ export default function ItemCard({
   const [localVerdict, setLocalVerdict] = useState(verdict);
   const [localStatus, setLocalStatus] = useState(item.status);
   const [error, setError] = useState("");
+  // 删除是乐观的整卡消失：确认后立即不渲染，失败再恢复
+  const [deleted, setDeleted] = useState(false);
 
   async function setStatus(status: "unread" | "read" | "later") {
     const prev = localStatus;
@@ -177,6 +180,24 @@ export default function ItemCard({
       setError("操作失败，请重试");
     }
   }
+
+  // 删除这条：不可恢复（连同合并进来的重复报道一起删），所以必须确认。
+  // 反馈记录保留——那是偏好学习的原料，不随条目消失。
+  async function deleteItem() {
+    if (!window.confirm(`删除「${title.slice(0, 30)}」？不可恢复，合并的重复报道会一起删。`)) return;
+    setDeleted(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/items/${item.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      startTransition(() => router.refresh());
+    } catch {
+      setDeleted(false);
+      setError("删除失败，请重试");
+    }
+  }
+
+  if (deleted) return null;
 
   const isRead = localStatus === "read";
   const isLater = localStatus === "later";
@@ -409,6 +430,15 @@ export default function ItemCard({
             }`}
           >
             <IconBookmark className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={deleteItem}
+            title="删除这条（不可恢复）"
+            aria-label="删除这条"
+            className="grid h-10 w-10 place-items-center rounded-full text-stone-400 transition-colors hover:bg-rose-50 hover:text-rose-600 sm:h-8 sm:w-8"
+          >
+            <IconTrash className="h-4 w-4" />
           </button>
         </div>
       </div>
