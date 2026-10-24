@@ -14,8 +14,9 @@ export function passesFilters(item: ItemRow, ctx: FilterContext): boolean {
   if (settings.unreadOnly && item.status !== "unread") return false;
 
   if (settings.blockedKeywords.length > 0) {
-    const text = `${item.zh_title ?? ""} ${item.title}`;
-    if (settings.blockedKeywords.some((k) => k && text.includes(k))) return false;
+    // 大小写不敏感：用户习惯填小写（如 kimi），标题里却是 Kimi/KIMI，先统一小写再比
+    const text = `${item.zh_title ?? ""} ${item.title}`.toLowerCase();
+    if (settings.blockedKeywords.some((k) => k && text.includes(k.toLowerCase()))) return false;
   }
 
   if (item.product) {
