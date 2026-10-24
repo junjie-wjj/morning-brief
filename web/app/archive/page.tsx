@@ -2,9 +2,11 @@ import Link from "next/link";
 import { execute, getFeedback, queryItems, type ItemRow } from "@/lib/db";
 import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
+import MarkAllReadButton from "../components/MarkAllReadButton";
 import { IconCalendar, IconChevronDown, IconSearch } from "../components/Icons";
 
-// 历史页：按期号（北京时间日期）分组，分页展示；支持关键词搜索（中文/英文标题与摘要）。
+// 历史页：按期号（北京时间日期）分组、分页；关键词搜索（标题/摘要/原文精简版，
+// 支持高亮与按时间/相关度排序）；日期胶囊直达某一期；可隐藏点踩过的条目。
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 40;
@@ -17,10 +19,13 @@ function likePattern(q: string) {
 export default async function Archive({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; issue?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; issue?: string; sort?: string; nodown?: string }>;
 }) {
-  const { page: pageParam, q: qParam, issue: issueParam } = await searchParams;
+  const { page: pageParam, q: qParam, issue: issueParam, sort: sortParam, nodown: nodownParam } =
+    await searchParams;
   const q = (qParam ?? "").trim().slice(0, 80);
+  const sort = sortParam === "relevance" ? "relevance" : "time";
+  const hideDown = nodownParam === "1";
   // 期号筛选：只接受 YYYY-MM-DD 形态，防手改 URL 塞进奇怪的东西
   const issueSel = /^\d{4}-\d{2}-\d{2}$/.test(issueParam ?? "") ? issueParam! : "";
   const page = Math.max(1, Number(pageParam) || 1);
@@ -29,20 +34,33 @@ export default async function Archive({
   const conditions = ["dup_of IS NULL"];
   const args: (string | number)[] = [];
   if (q) {
-    conditions.push("(zh_title LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')");
+    conditions.push(
+      "(zh_title LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\' OR points LIKE ? ESCAPE '\\')",
+    );
     const p = likePattern(q);
-    args.push(p, p, p);
+    args.push(p, p, p, p);
   }
   if (issueSel) {
     conditions.push("issue = ?");
     args.push(issueSel);
   }
+  if (hideDown) {
+    conditions.push("link NOT IN (SELECT link FROM feedback WHERE verdict = 'down')");
+  }
   const where = conditions.join(" AND ");
 
-  const [items, countResult, feedback, issueRows] = await Promise.all([
+  // 相关度排序：标题命中的排在仅摘要/正文命中的前面，组内按兴趣分、时间递减
+  const orderSql =
+    sort === "relevance"
+      ? "(CASE WHEN zh_title LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END), score DESC, date DESC, id DESC"
+      : "date DESC, id DESC";
+  const orderArgs = sort === "relevance" ? [likePattern(q), likePattern(q)] : [];
+
+  const [items, countResult, feedback, issueRows, unreadRows] = await Promise.all([
     queryItems(
-      `SELECT * FROM items WHERE ${where} ORDER BY date DESC, id DESC LIMIT ? OFFSET ?`,
+      `SELECT * FROM items WHERE ${where} ORDER BY ${orderSql} LIMIT ? OFFSET ?`,
       ...args,
+      ...orderArgs,
       PAGE_SIZE,
       offset,
     ),
@@ -55,17 +73,43 @@ export default async function Archive({
           "SELECT issue, COUNT(*) AS n FROM items WHERE dup_of IS NULL AND issue IS NOT NULL GROUP BY issue ORDER BY issue DESC",
           [],
         ).then((r) => r.rows as unknown as { issue: string | null; n: number }[]),
+    // 一键已读的确认数：当前浏览范围（不跟随搜索词）内的未读条数
+    q
+      ? Promise.resolve([{ n: 0 }])
+      : execute(
+          `SELECT COUNT(*) AS n FROM items WHERE dup_of IS NULL AND status = 'unread' ${
+            issueSel ? "AND issue = ?" : ""
+          } ${hideDown ? "AND link NOT IN (SELECT link FROM feedback WHERE verdict = 'down')" : ""}`,
+          issueSel ? [issueSel] : [],
+        ).then((r) => r.rows as unknown as { n: number }[]),
   ]);
   const total = Number(countResult.rows[0]?.n ?? 0);
+  const unreadTotal = Number(unreadRows[0]?.n ?? 0);
   const hasOlder = page * PAGE_SIZE < total;
+
+  // 链接构造统一走这里，保证翻页/切换时携带全部当前状态
   const pageHref = (n: number) => {
     const params = new URLSearchParams();
     params.set("page", String(n));
     if (q) params.set("q", q);
+    if (sort === "relevance") params.set("sort", "relevance");
     if (issueSel) params.set("issue", issueSel);
+    if (hideDown) params.set("nodown", "1");
     return `/archive?${params.toString()}`;
   };
-  const chipHref = (d: string) => `/archive?issue=${d}`;
+  const withParams = (patch: Record<string, string | null>) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (sort === "relevance") params.set("sort", "relevance");
+    if (issueSel) params.set("issue", issueSel);
+    if (hideDown) params.set("nodown", "1");
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null) params.delete(k);
+      else params.set(k, v);
+    }
+    const s = params.toString();
+    return s ? `/archive?${s}` : "/archive";
+  };
 
   const groups = new Map<string, ItemRow[]>();
   for (const it of items) {
@@ -111,7 +155,7 @@ export default async function Archive({
             {issueRows.map(({ issue, n }) => (
               <Link
                 key={issue}
-                href={chipHref(issue!)}
+                href={`/archive?issue=${issue}`}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors ${
                   issueSel === issue
                     ? "bg-ink text-paper"
@@ -132,7 +176,7 @@ export default async function Archive({
               type="search"
               name="q"
               defaultValue={q}
-              placeholder="搜索标题或摘要，如 Kimi、免费额度、Claude"
+              placeholder="搜索标题、摘要或原文精简版，如 Kimi、免费额度、Claude"
               aria-label="搜索历史条目"
               className="w-full rounded-full border border-line bg-white py-2 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
             />
@@ -145,25 +189,57 @@ export default async function Archive({
           </button>
         </form>
 
-        <p className="mt-2 text-xs text-muted">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted">
           {q ? (
             <>
-              搜索结果按时间倒序，每页 {PAGE_SIZE} 条。
-              <Link href="/archive" className="ml-1 text-amber-800 underline underline-offset-2 hover:text-amber-900">
+              <span className="inline-flex overflow-hidden rounded-full border border-line">
+                <Link
+                  href={withParams({ sort: null, page: null })}
+                  className={`px-2.5 py-1 ${sort === "time" ? "bg-ink text-paper" : "bg-white text-ink-soft hover:text-amber-800"}`}
+                >
+                  按时间
+                </Link>
+                <Link
+                  href={withParams({ sort: "relevance", page: null })}
+                  className={`px-2.5 py-1 ${sort === "relevance" ? "bg-ink text-paper" : "bg-white text-ink-soft hover:text-amber-800"}`}
+                >
+                  按相关度
+                </Link>
+              </span>
+              <span>每页 {PAGE_SIZE} 条。</span>
+              <Link href="/archive" className="text-amber-800 underline underline-offset-2 hover:text-amber-900">
                 清除搜索
               </Link>
             </>
-          ) : issueSel ? (
-            <>
-              只看 {issueSel} 这一期，按时间倒序。
-              <Link href="/archive" className="ml-1 text-amber-800 underline underline-offset-2 hover:text-amber-900">
-                查看全部
-              </Link>
-            </>
           ) : (
-            <>每页 {PAGE_SIZE} 条，按时间倒序；也可以直接点上面的日期。</>
+            <>
+              {unreadTotal > 0 ? (
+                <MarkAllReadButton
+                  scope={issueSel ? { issue: issueSel } : { all: true }}
+                  count={unreadTotal}
+                />
+              ) : null}
+              <Link
+                href={withParams({ nodown: hideDown ? null : "1", page: null })}
+                className={`rounded-full border px-2.5 py-1 transition-colors ${
+                  hideDown
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-line bg-white text-ink-soft hover:border-amber-300 hover:text-amber-800"
+                }`}
+                title="隐藏点过「踩」的条目（数据仍保留，随时可关掉开关找回）"
+              >
+                {hideDown ? "已隐藏点踩条目 ✓" : "隐藏点踩条目"}
+              </Link>
+              {issueSel ? (
+                <Link href="/archive" className="text-amber-800 underline underline-offset-2 hover:text-amber-900">
+                  查看全部
+                </Link>
+              ) : (
+                <span>每页 {PAGE_SIZE} 条，按时间倒序；也可以直接点上面的日期。</span>
+              )}
+            </>
           )}
-        </p>
+        </div>
       </header>
 
       {items.length === 0 && (
@@ -174,12 +250,15 @@ export default async function Archive({
 
       {entries.map(([issue, list]) => (
         <section key={issue} className="mt-8">
-          <div className="sticky top-[61px] z-30 -mx-1 flex items-baseline gap-3 border-b border-line bg-paper/90 px-1 py-2.5 backdrop-blur">
-            <h2 className="font-serif text-lg font-semibold tracking-tight text-ink">
-              {issue === "更早" ? "更早（未分期）" : issue}
-            </h2>
-            <span className="text-[11px] text-muted">{list.length} 条</span>
-          </div>
+          {/* 已选某一期时页面标题就是期号，组内再挂标题属于重复信息 */}
+          {!issueSel && (
+            <div className="sticky top-[61px] z-30 -mx-1 flex items-baseline gap-3 border-b border-line bg-paper/90 px-1 py-2.5 backdrop-blur">
+              <h2 className="font-serif text-lg font-semibold tracking-tight text-ink">
+                {issue === "更早" ? "更早（未分期）" : issue}
+              </h2>
+              <span className="text-[11px] text-muted">本页 {list.length} 条</span>
+            </div>
+          )}
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {list.map((it) => (
               <ItemCard
@@ -187,6 +266,7 @@ export default async function Archive({
                 item={it}
                 verdict={feedback.get(it.link) ?? null}
                 related={parseRelated(it.related)}
+                highlight={q || undefined}
               />
             ))}
           </div>

@@ -93,6 +93,27 @@ function ActionIcon({
   );
 }
 
+// 搜索关键词高亮：把命中片段用黄底标出，让「这条为什么算结果」一眼可见。
+// q 为空时原样渲染；大小写不敏感；正则元字符已转义，纯字面匹配。
+function Highlighted({ text, q }: { text: string; q?: string }) {
+  if (!q || !q.trim()) return <>{text}</>;
+  const needle = q.trim();
+  const parts = text.split(new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.toLowerCase() === needle.toLowerCase() ? (
+          <mark key={i} className="rounded-sm bg-amber-200/80 px-0.5 text-inherit">
+            {p}
+          </mark>
+        ) : (
+          <span key={i}>{p}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 // 客户端组件：按钮点击后发请求改数据库，然后让服务端重新渲染页面
 export default function ItemCard({
   item,
@@ -100,12 +121,14 @@ export default function ItemCard({
   related = [],
   variant = "default",
   rank,
+  highlight,
 }: {
   item: ItemRow;
   verdict?: "up" | "down" | null;
   related?: { title: string; link: string; source: string }[];
   variant?: Variant;
   rank?: number;
+  highlight?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -242,7 +265,7 @@ export default function ItemCard({
                     : "mt-2 text-[15.5px] leading-6 hover:text-amber-800"
               } ${isRead ? "text-stone-400 hover:text-stone-600" : "text-ink"}`}
             >
-              {title}
+              {highlight ? <Highlighted text={title} q={highlight} /> : title}
             </a>
 
             {item.summary ? (
@@ -253,7 +276,7 @@ export default function ItemCard({
                     : `mt-1.5 text-[13.5px] leading-6 text-ink-soft ${isFeatured ? "sm:text-sm" : ""}`
                 }
               >
-                {item.summary}
+                {highlight ? <Highlighted text={item.summary} q={highlight} /> : item.summary}
               </p>
             ) : null}
 
@@ -300,7 +323,7 @@ export default function ItemCard({
                 </p>
                 {item.points.split("\n").filter(Boolean).map((line, i) => (
                   <p key={i} className="mt-2 text-[13px] leading-6 text-ink-soft first:mt-1.5">
-                    {line}
+                    {highlight ? <Highlighted text={line} q={highlight} /> : line}
                   </p>
                 ))}
                 <p className="mt-2.5 text-[10.5px] text-muted">
@@ -332,7 +355,9 @@ export default function ItemCard({
             </>
           ) : null}
           {!isCompact && item.zh_title && item.zh_title !== item.title ? (
-            <span className="hidden truncate text-stone-400 md:inline">· 原标题：{item.title}</span>
+            <span className="hidden truncate text-stone-400 md:inline">
+              · 原标题：{highlight ? <Highlighted text={item.title} q={highlight} /> : item.title}
+            </span>
           ) : null}
           {error ? (
             <span className="shrink-0 text-rose-600" role="status" aria-live="polite">· {error}</span>
