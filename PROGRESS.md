@@ -665,3 +665,41 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
 2. **GitHub** → Settings → Secrets and variables → Actions → 添加 `BACKUP_PASSPHRASE`（备份口令）。
 
 两个口令不要相同；备份口令丢了备份就无法恢复。
+
+## 密码保护与每周备份正式上线（2026-10-24）
+
+### 排查：找不到 Environment variables 入口
+
+- 用户在 Netlify 界面找不到环境变量入口，原因是**登错了账号**：
+  当初注册 Netlify 用的是 GitHub 授权登录（junjie-wjj 团队），
+  而浏览器里后来登的是 163 邮箱新注册的空账号（hopelaurax1h-72 团队，项目列表为空）。
+- 处理：退出后用 GitHub 重新登录；期间出现的 "Invalid state key" 是 OAuth 票据超时，
+  重走一次即可（GitHub 已有会话，无需再输密码）。
+
+### APP_PASSWORD 配置（Netlify）
+
+- 位置：Projects → morning-brief-junjie → Project configuration → Environment variables。
+- 按提示勾选了「Contains secret values」：值以密文保存，作用域 Builds / Functions / Runtime。
+- 用户之前看到的 "Upgrade to unlock" 只是锁定「按作用域细分」这个付费功能，
+  添加变量本身免费版可用。
+- 配置后触发 deploy-web 重新部署（HTTP 204 触发，运行成功）。
+
+线上验证全部通过：未登录首页 307 → `/login`；错误密码 401；正确密码 200 + 写入 cookie；
+带 cookie 首页 200；未登录调受保护 API 返回 401 `{"error":"未登录"}`；
+浏览器实际走通 登录页 → 输入密码 → 进入首页。
+
+### BACKUP_PASSPHRASE 配置（GitHub Secret）与首次备份
+
+- GitHub → Settings → Secrets and variables → Actions → 新增 `BACKUP_PASSPHRASE`。
+- 手动触发 backup 工作流：成功，产物 `morning-brief-backup-40050932864`（约 335KB）。
+- **恢复演练**：通过 API 下载 artifact → 解压得到 `backup-2026-10-24.enc` →
+  本地用口令 dry-run 解密成功：条目 469 / 反馈 12。
+  （settings 为 0 是正常现象：设置只在网页上点「保存」时才写入，线上一直用默认值。）
+- 加密产物留了一份在 `web/data/artifact-test/`（已 gitignore）。
+
+### 遗留清理项
+
+- 163 邮箱的空 Netlify 账号（hopelaurax1h-72 团队）留着没用，建议在它的
+  Team settings 里删除，避免以后再登错。
+- junjie-wjj 团队下有个 10 月 12 日创建的试验项目 shimmering-dieffenbachia-2cc055
+  （Agent Runners 产生），确认无用后可在 Netlify 里删除。
