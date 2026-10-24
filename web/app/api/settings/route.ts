@@ -10,7 +10,9 @@ const VALID = (v: unknown): v is Settings => {
     && arr(s.tags) && arr(s.sources) && arr(s.products)
     && typeof s.unreadOnly === "boolean"
     && typeof s.hideDownvoted === "boolean"
-    && Array.isArray(s.blockedKeywords) && s.blockedKeywords.every((i) => typeof i === "string");
+    && Array.isArray(s.blockedKeywords) && s.blockedKeywords.every((i) => typeof i === "string")
+    && (s.blockMode === "hide" || s.blockMode === "drop")
+    && typeof s.dropLowScore === "boolean";
 };
 
 export async function GET() {

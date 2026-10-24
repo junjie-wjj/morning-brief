@@ -80,6 +80,25 @@ const data = {
   tags: [...tags.entries()].map(([tag, v]) => ({ tag, ...v })),
 };
 
+// 附带导出筛选设置里的「抓取侧丢弃」配置（屏蔽词模式 / 低分不入库），
+// brief.mjs 用它在加工前丢条目、seed.mjs 用它清理已入库的同类条目。
+// 读不到设置（没保存过）就输出默认值，流水线按「不丢弃」处理。
+try {
+  const rs = await db.execute("SELECT value FROM settings WHERE key = 'filters'");
+  const saved = rs.rows[0] ? JSON.parse(rs.rows[0].value) : {};
+  data.userSettings = {
+    blockedKeywords: Array.isArray(saved.blockedKeywords)
+      ? saved.blockedKeywords.filter((k) => typeof k === 'string' && k.trim())
+      : [],
+    blockMode: saved.blockMode === 'drop' ? 'drop' : 'hide',
+    dropLowScore: saved.dropLowScore === true,
+  };
+  console.log(`抓取侧设置：屏蔽词 ${data.userSettings.blockedKeywords.length} 个（${data.userSettings.blockMode === 'drop' ? '彻底不抓' : '仅隐藏'}）· 低分不入库 ${data.userSettings.dropLowScore ? '开' : '关'}`);
+} catch (err) {
+  console.warn(`⚠ 读取设置失败（${err.message}），本次不做抓取侧丢弃`);
+  data.userSettings = { blockedKeywords: [], blockMode: 'hide', dropLowScore: false };
+}
+
 mkdirSync(path.dirname(outFile), { recursive: true });
 writeFileSync(outFile, JSON.stringify(data, null, 2));
 

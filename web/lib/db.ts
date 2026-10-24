@@ -11,6 +11,8 @@ export interface Settings {
   products: string[] | null;   // null = 全部产品
   blockedKeywords: string[];   // 标题包含这些词就不显示
   hideDownvoted: boolean;      // 隐藏点过「不感兴趣」的条目
+  blockMode: "hide" | "drop";  // 屏蔽词作用范围：仅隐藏（默认）/ 彻底不抓（每日更新时从源头丢弃并清理档案）
+  dropLowScore: boolean;       // 每日更新时兴趣分 ≤2 的资讯不入库（省 AI 额度）
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +23,8 @@ export const DEFAULT_SETTINGS: Settings = {
   products: null,
   blockedKeywords: [],
   hideDownvoted: true,
+  blockMode: "hide",
+  dropLowScore: false,
 };
 
 export interface ItemRow {

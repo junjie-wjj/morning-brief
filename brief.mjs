@@ -81,6 +81,7 @@ import { mapHfModels, mapReleaseItems, mapNewsItems, mapHnHits, dedupeByLink } f
 import { buildDedupePrompt, applyDedupe, exactTitleGroups } from './lib/dedup.mjs';
 import { itemKey, applyEnrichResponse } from './lib/enrich.mjs';
 import { selectSearchTerms } from './lib/preferences.mjs';
+import { dropBlockedItems, dropLowScoreItems } from './lib/blocklist.mjs';
 import { readFileSync } from 'node:fs';
 
 // 成本控制：只对高分条目做（正文比标题长几十倍，全量会让调用量涨十倍以上）。
@@ -1047,6 +1048,17 @@ async function main() {
     .flatMap((r) => r.items.map((it) => ({ ...it, source: r.name })));
   // 产品追踪优先，其次资讯；同链接只保留一条
   let flat = dedupeByLink([...productItems, ...newsFlat]);
+
+  // 屏蔽词「彻底不抓」：在 AI 加工之前丢弃，省下加工额度与正文抓取。
+  // 只能匹配原始标题（还没有中文标题）；「仅隐藏」模式不在这一层动数据。
+  const userSet = prefStats?.userSettings ?? {};
+  if (userSet.blockMode === 'drop' && Array.isArray(userSet.blockedKeywords) && userSet.blockedKeywords.length) {
+    const { kept, dropped } = dropBlockedItems(flat, userSet.blockedKeywords);
+    if (dropped.length) {
+      console.log(`🚫 屏蔽词（彻底不抓）：丢弃 ${dropped.length} 条（${dropped.slice(0, 3).map((it) => it.title.slice(0, 30)).join(' / ')}${dropped.length > 3 ? ' …' : ''}）`);
+    }
+    flat = kept;
+  }
   let total = flat.length;
 
   let enriched = null;
@@ -1057,6 +1069,17 @@ async function main() {
       enriched = await enrichWithLLM(flat, pipelineDeadline);
     } catch (err) {
       aiNote = `AI 加工失败（${err.message}），本次展示原始抓取`;
+    }
+  }
+
+  // 「低分不入库」：AI 打分 ≤2 的资讯不再入库（产品条目与没加工出分的豁免），
+  // 省下后续的正文抓取与精简版额度；折叠区只剩下限以上但低于设置线的内容。
+  if (userSet.dropLowScore && enriched) {
+    const { kept, dropped } = dropLowScoreItems(flat, enriched, 2);
+    if (dropped.length) {
+      console.log(`🚫 低分不入库：丢弃 ${dropped.length} 条（兴趣分 ≤2）`);
+      flat = kept;
+      for (const it of dropped) enriched.delete(it.link);
     }
   }
 

@@ -12,6 +12,8 @@ const DEFAULTS: Settings = {
   products: null,
   blockedKeywords: [],
   hideDownvoted: true,
+  blockMode: "hide",
+  dropLowScore: false,
 };
 
 type MultiField = "tags" | "sources" | "products";
@@ -168,7 +170,7 @@ export default function SettingsForm({
         </div>
       </Section>
 
-      <Section title="屏蔽关键词" hint="标题包含这些词的条目不显示，一行一个（或逗号分隔）。">
+      <Section title="屏蔽关键词" hint="标题包含这些词（大小写不限）的条目不显示，一行一个（或逗号分隔）。">
         <textarea
           value={keywords}
           onChange={(e) => setKeywords(e.target.value)}
@@ -176,6 +178,40 @@ export default function SettingsForm({
           placeholder={"融资\n招聘\n裁员"}
           className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm leading-6 text-ink shadow-inner outline-none transition-colors placeholder:text-stone-300 focus:border-amber-400"
         />
+        <div className="mt-3">
+          <p className="text-xs font-medium text-ink-soft">作用范围</p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={s.blockMode === "hide"}
+              onClick={() => setS({ ...s, blockMode: "hide" })}
+              className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${
+                s.blockMode === "hide"
+                  ? "border-amber-400 bg-amber-500 text-white shadow-sm"
+                  : "border-line bg-white text-ink-soft hover:border-amber-300"
+              }`}
+            >
+              仅隐藏（保留存档）
+            </button>
+            <button
+              type="button"
+              aria-pressed={s.blockMode === "drop"}
+              onClick={() => setS({ ...s, blockMode: "drop" })}
+              className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${
+                s.blockMode === "drop"
+                  ? "border-rose-400 bg-rose-500 text-white shadow-sm"
+                  : "border-line bg-white text-ink-soft hover:border-rose-300"
+              }`}
+            >
+              彻底不抓（不进档案）
+            </button>
+          </div>
+          <p className="mt-1.5 text-xs leading-5 text-muted">
+            {s.blockMode === "drop"
+              ? "每日更新时命中词的条目在 AI 加工前直接丢弃（省额度），已入库的同类内容也会一并删除，历史页不再可见。删除不可恢复。"
+              : "被屏蔽的新闻照常抓取和存档，只是不出现在首页；历史页仍可查看与搜索，删词即恢复显示。"}
+          </p>
+        </div>
       </Section>
 
       <Section title="其他" hint="阅读状态与反馈显示控制。">
@@ -197,6 +233,20 @@ export default function SettingsForm({
               className="h-4 w-4 rounded border-stone-300 accent-amber-600"
             />
             隐藏点过「不感兴趣」的条目
+          </label>
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ink-soft">
+            <input
+              type="checkbox"
+              checked={s.dropLowScore}
+              onChange={(e) => setS({ ...s, dropLowScore: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-stone-300 accent-amber-600"
+            />
+            <span>
+              低分内容不入库（每日更新时兴趣分 ≤ 2 的资讯直接丢弃）
+              <span className="block text-xs text-muted">
+                省下 AI 加工额度，垃圾内容不再进入首页折叠区和历史页；产品动态与未打分条目不受影响。开启后明日生效。
+              </span>
+            </span>
           </label>
         </div>
       </Section>

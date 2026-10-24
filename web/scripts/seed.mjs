@@ -121,3 +121,25 @@ for (const it of data.items) {
   n++;
 }
 console.log(`导入完成：${n} 条（其中 ${withPoints} 条含原文精简版）→ ${url}`);
+
+// 屏蔽词「彻底不抓」的存量清理：已入库的同类条目也从档案里删掉，
+// 否则历史页还会留着用户明确说「不想看」的内容。
+// 只在导出的偏好文件里 blockMode=drop 时执行；删除不可恢复，日志必须报数。
+try {
+  const prefPath = path.join(root, "web", "data", "preferences.json");
+  const userSet = JSON.parse(readFileSync(prefPath, "utf8")).userSettings ?? {};
+  if (userSet.blockMode === "drop" && Array.isArray(userSet.blockedKeywords) && userSet.blockedKeywords.length) {
+    let deleted = 0;
+    for (const kw of userSet.blockedKeywords) {
+      const like = `%${kw.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
+      const r = await db.execute({
+        sql: "DELETE FROM items WHERE LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(zh_title) LIKE ? ESCAPE '\\'",
+        args: [like.toLowerCase(), like.toLowerCase()],
+      });
+      deleted += r.rowsAffected;
+    }
+    console.log(`屏蔽词存量清理：删除 ${deleted} 条已入库的命中条目`);
+  }
+} catch {
+  /* 偏好文件不存在（本地 seed / 导出步骤失败）时跳过，不影响导入 */
+}
