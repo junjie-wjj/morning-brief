@@ -96,10 +96,12 @@ const upsert = `INSERT INTO items (link, date, source, title, zh_title, summary,
       WHEN items.points IS NULL THEN excluded.body_via
       ELSE items.body_via END,
     product    = COALESCE(excluded.product,    items.product),
-    -- 期号 = 这条最近一次出现在抓取窗口里的日期，必须覆盖。
-    -- 若用 COALESCE 保留首次出现的期号，第二天重复抓到的链接会留在旧期，
-    -- 首页「只显示最新一期」就会只剩极少数全新链接，大部分内容被藏起来。
-    issue      = excluded.issue,
+    -- 期号「首发定档」：只在首次插入时写入，冲突更新时保留旧值。
+    -- 一条新闻属于它第一次被抓到的那一期；后续几天它还留在抓取窗口里
+    -- 会被重复抓到，但不再挪进新期——否则同一新闻会在首页连播好几天
+    -- （实测 10-24 期中约 1/3 是 10-22 及更早的旧闻重播）。
+    -- 同一天重跑不受影响：期号本来就是同一天，保留旧值等于没变。
+    issue      = items.issue,
     dup_of     = ${dedupRan ? "excluded.dup_of" : "items.dup_of"},
     related    = ${dedupRan ? "excluded.related" : "items.related"}`;
 

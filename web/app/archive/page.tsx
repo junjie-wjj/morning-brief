@@ -17,19 +17,29 @@ function likePattern(q: string) {
 export default async function Archive({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; issue?: string }>;
 }) {
-  const { page: pageParam, q: qParam } = await searchParams;
+  const { page: pageParam, q: qParam, issue: issueParam } = await searchParams;
   const q = (qParam ?? "").trim().slice(0, 80);
+  // 期号筛选：只接受 YYYY-MM-DD 形态，防手改 URL 塞进奇怪的东西
+  const issueSel = /^\d{4}-\d{2}-\d{2}$/.test(issueParam ?? "") ? issueParam! : "";
   const page = Math.max(1, Number(pageParam) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
-  const where = q
-    ? `dup_of IS NULL AND (zh_title LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')`
-    : "dup_of IS NULL";
-  const args = q ? [likePattern(q), likePattern(q), likePattern(q)] : [];
+  const conditions = ["dup_of IS NULL"];
+  const args: (string | number)[] = [];
+  if (q) {
+    conditions.push("(zh_title LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')");
+    const p = likePattern(q);
+    args.push(p, p, p);
+  }
+  if (issueSel) {
+    conditions.push("issue = ?");
+    args.push(issueSel);
+  }
+  const where = conditions.join(" AND ");
 
-  const [items, countResult, feedback] = await Promise.all([
+  const [items, countResult, feedback, issueRows] = await Promise.all([
     queryItems(
       `SELECT * FROM items WHERE ${where} ORDER BY date DESC, id DESC LIMIT ? OFFSET ?`,
       ...args,
@@ -38,11 +48,24 @@ export default async function Archive({
     ),
     execute(`SELECT COUNT(*) AS n FROM items WHERE ${where}`, args),
     getFeedback(),
+    // 日期导航条：每期一行（期号 + 条数），搜索时不展示，避免与搜索结果混淆
+    q
+      ? Promise.resolve([] as { issue: string | null; n: number }[])
+      : execute(
+          "SELECT issue, COUNT(*) AS n FROM items WHERE dup_of IS NULL AND issue IS NOT NULL GROUP BY issue ORDER BY issue DESC",
+          [],
+        ).then((r) => r.rows as unknown as { issue: string | null; n: number }[]),
   ]);
   const total = Number(countResult.rows[0]?.n ?? 0);
   const hasOlder = page * PAGE_SIZE < total;
-  const pageHref = (n: number) =>
-    `/archive?page=${n}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const pageHref = (n: number) => {
+    const params = new URLSearchParams();
+    params.set("page", String(n));
+    if (q) params.set("q", q);
+    if (issueSel) params.set("issue", issueSel);
+    return `/archive?${params.toString()}`;
+  };
+  const chipHref = (d: string) => `/archive?issue=${d}`;
 
   const groups = new Map<string, ItemRow[]>();
   for (const it of items) {
@@ -64,11 +87,43 @@ export default async function Archive({
           <span className="ml-2 align-middle font-sans text-xs font-normal text-muted">
             {q ? (
               <>与「{q}」相关 · {total} 条{total > PAGE_SIZE ? ` · 第 ${page} 页` : ""}</>
+            ) : issueSel ? (
+              <>{issueSel} 期 · {total} 条{total > PAGE_SIZE ? ` · 第 ${page} 页` : ""}</>
             ) : (
               <>第 {page} 页 · 共 {total} 条</>
             )}
           </span>
         </h1>
+
+        {/* 日期导航：横向滚动的期号胶囊，点哪天看哪天 */}
+        {!q && issueRows.length > 0 && (
+          <nav aria-label="按期号浏览" className="mt-3 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+            <Link
+              href="/archive"
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors ${
+                issueSel
+                  ? "border border-line bg-white text-ink-soft hover:border-amber-300"
+                  : "bg-ink text-paper"
+              }`}
+            >
+              全部
+            </Link>
+            {issueRows.map(({ issue, n }) => (
+              <Link
+                key={issue}
+                href={chipHref(issue!)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors ${
+                  issueSel === issue
+                    ? "bg-ink text-paper"
+                    : "border border-line bg-white text-ink-soft hover:border-amber-300 hover:text-amber-800"
+                }`}
+              >
+                {issue!.slice(5).replace("-", "/")}
+                <span className="ml-1 opacity-60">{n}</span>
+              </Link>
+            ))}
+          </nav>
+        )}
 
         <form action="/archive" method="get" className="mt-3 flex gap-2">
           <div className="relative flex-1">
@@ -98,8 +153,15 @@ export default async function Archive({
                 清除搜索
               </Link>
             </>
+          ) : issueSel ? (
+            <>
+              只看 {issueSel} 这一期，按时间倒序。
+              <Link href="/archive" className="ml-1 text-amber-800 underline underline-offset-2 hover:text-amber-900">
+                查看全部
+              </Link>
+            </>
           ) : (
-            <>每页 {PAGE_SIZE} 条，按时间倒序；更早的内容用页尾按钮翻页。</>
+            <>每页 {PAGE_SIZE} 条，按时间倒序；也可以直接点上面的日期。</>
           )}
         </p>
       </header>

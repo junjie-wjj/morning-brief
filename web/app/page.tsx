@@ -36,8 +36,9 @@ function greeting() {
 }
 
 export default async function Home() {
-  // 只展示最新一期：避免首页被上线以来的全部历史条目淹没。
-  // 没有期号的老数据（迁移前的库）退回展示全部，避免页面空白。
+  // 「收件箱」模式：最新一期的全部条目 + 往期中还没读完的条目。
+  // 期号是首发定档的（见 seed.mjs）：旧闻不会每天重播；没看完的留在首页
+  // 等你，读完（或标记）即退场。没有期号的老数据退回展示全部，避免页面空白。
   // 期号、筛选、反馈、偏好统计互不依赖，一次并行查完，少一个数据库往返。
   const [issueRows, settings, feedback, stats] = await Promise.all([
     queryItems("SELECT MAX(issue) AS issue FROM items"),
@@ -45,7 +46,10 @@ export default async function Home() {
   ]);
   const latestIssue = issueRows[0]?.issue ?? null;
   const rawItems = latestIssue
-    ? await queryItems("SELECT * FROM items WHERE issue = ? ORDER BY score DESC, date DESC, id DESC", latestIssue)
+    ? await queryItems(
+        "SELECT * FROM items WHERE issue = ? OR status != 'read' ORDER BY score DESC, date DESC, id DESC",
+        latestIssue,
+      )
     : await queryItems("SELECT * FROM items ORDER BY score DESC, date DESC, id DESC");
   // 被多源去重合并的报道不再单独展示（主条目下方有「相关报道」链接）
   const items = rawItems.filter((it) => !it.dup_of);
@@ -90,6 +94,8 @@ export default async function Home() {
   // 之前的 bug：未读数把被筛选隐藏的条目也数进去，出现「共 63 条但未读 68 条」
   const displayed = [...newsVisible, ...lowScore, ...productItems];
   const unreadCount = displayed.filter((it) => it.status === "unread").length;
+  // 收件箱模式下会混入往期未读，用徽标注明数量，避免「怎么还有旧新闻」的困惑
+  const olderCount = displayed.filter((it) => it.issue && it.issue !== latestIssue).length;
   const isFiltered = settings.minScore !== 3 || settings.unreadOnly || settings.hideDownvoted
     || settings.blockedKeywords.length > 0 || settings.tags || settings.sources || settings.products;
 
@@ -107,6 +113,11 @@ export default async function Home() {
               <span className="rounded-full border border-line bg-white px-2.5 py-1">
                 共 {displayed.length} 条
               </span>
+              {olderCount > 0 ? (
+                <span className="rounded-full border border-line bg-white px-2.5 py-1">
+                  含往期未读 {olderCount} 条
+                </span>
+              ) : null}
               {unreadCount > 0 ? (
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-800">
                   {unreadCount} 条未读
