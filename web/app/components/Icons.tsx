@@ -36,6 +36,15 @@ export function IconArrowUpRight({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+export function IconSearch({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
 export function IconThumbsUp({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg {...base} className={className}>
