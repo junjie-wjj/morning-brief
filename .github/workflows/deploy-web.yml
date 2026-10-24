@@ -1,11 +1,12 @@
 name: deploy-web
 
+# ⚠ 手动触发制（2026-10-25）：Netlify 免费账户每月只有 300 积分，
+# 每次生产部署约消耗 15 积分（≈ 全月只够 20 次）。此前 push 即部署，
+# 一天 9 次把当月额度烧光导致部署冻结。改为仅手动触发：
+# 想上线时到 Actions → deploy-web → Run workflow。
+# 数据库/流水线的改动不需要部署（daily.yml 直接写库，网站实时读库），
+# 只有 web/ 下的界面代码才需要。建议攒一批改动再一次性部署。
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'web/**'
-      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 jobs:
