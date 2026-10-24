@@ -78,7 +78,8 @@ import {
   buildReducePrompt, applyReduced,
 } from './lib/extract.mjs';
 import { mapHfModels, mapReleaseItems, mapNewsItems, mapHnHits, dedupeByLink } from './lib/products.mjs';
-import { buildDedupePrompt, applyDedupe } from './lib/dedup.mjs';
+import { buildDedupePrompt, applyDedupe, exactTitleGroups } from './lib/dedup.mjs';
+import { itemKey, applyEnrichResponse } from './lib/enrich.mjs';
 import { selectSearchTerms } from './lib/preferences.mjs';
 import { readFileSync } from 'node:fs';
 
@@ -303,7 +304,9 @@ async function chatWithFallback(messages) {
 }
 
 async function enrichBatch(chunk) {
-  const listing = JSON.stringify(chunk.map((it, idx) => ({ i: idx, src: it.source, title: it.title })));
+  // 条目用链接哈希短键引用，模型必须原样回显才能绑定——
+  // 序号在弱模型上会错位漂移，曾把别的条目标题错绑到同批另一条上
+  const listing = JSON.stringify(chunk.map((it) => ({ k: itemKey(it.link), src: it.source, title: it.title })));
   const content = await chatWithFallback([
     { role: 'system', content: SYSTEM_EDITOR },
     { role: 'user', content: `下面是今日 AI 资讯条目。请为每一条输出：
@@ -314,22 +317,11 @@ async function enrichBatch(chunk) {
 
 条目：${listing}
 
-只输出 JSON，格式：{"items":[{"i":0,"zh":"...","s":"...","tag":"...","score":3},...]}，不要输出任何其他文字。` },
+只输出 JSON，格式：{"items":[{"k":"原样的k","zh":"...","s":"...","tag":"...","score":3},...]}，k 必须原样复制对应条目的 k，不要输出任何其他文字。` },
   ]);
   const cleaned = content.replace(/```(?:json)?/g, '').trim();
   const parsed = JSON.parse(cleaned.slice(cleaned.indexOf('{'), cleaned.lastIndexOf('}') + 1));
-  const out = new Map();
-  for (const e of parsed.items ?? []) {
-    if (!Number.isInteger(e.i) || !chunk[e.i]) continue;
-    if (typeof e.zh !== 'string' || !e.zh.trim()) continue;
-    out.set(chunk[e.i].link, {
-      zh: e.zh.trim(),
-      summary: typeof e.s === 'string' ? e.s.trim() : '',
-      tag: typeof e.tag === 'string' && e.tag.trim() ? e.tag.trim() : '其他',
-      score: Math.max(1, Math.min(5, Math.round(Number(e.score)) || 1)),
-    });
-  }
-  return out;
+  return applyEnrichResponse(parsed, chunk);
 }
 
 async function enrichWithLLM(items, deadline = Infinity) {
@@ -369,23 +361,36 @@ async function dedupeNews(items, enriched, chatFn = chatWithFallback, deadline =
   const products = items.filter((it) => it.product);
   if (news.length < 2) return [...news, ...products];
 
-  const rawGroups = [];
-  for (let i = 0; i < news.length; i += 40) {
+  // 第一道：纯逻辑预合并——跨来源、归一化标题完全一致直接视为同一报道，
+  // 不依赖 LLM 当天的状态（限流降级到弱模型时 LLM 漏判的明显重复由这里兜底）
+  const rawGroups = exactTitleGroups(news);
+  const preMerged = rawGroups.length;
+  const preMergedIdx = new Set(rawGroups.flat());
+  const rest = news
+    .map((it, orig) => ({ it, orig }))
+    .filter(({ orig }) => !preMergedIdx.has(orig));
+
+  // 第二道：LLM 找出标题不同但报道同一事件的条目；批次只含未预合并的条目
+  for (let i = 0; i < rest.length; i += 40) {
     if (Date.now() > deadline) {
-      console.warn(`⚠ 多源去重达到总时长上限，剩余 ${news.length - i} 条本次不参与去重`);
+      console.warn(`⚠ 多源去重达到总时长上限，剩余 ${rest.length - i} 条本次不参与去重`);
       break;
     }
-    const chunk = news.slice(i, i + 40);
+    const chunk = rest.slice(i, i + 40);
     try {
       const content = await withTimeout(chatFn([
         { role: 'system', content: SYSTEM_NEWS_EDITOR },
-        { role: 'user', content: buildDedupePrompt(chunk) },
+        { role: 'user', content: buildDedupePrompt(chunk.map(({ it }) => it)) },
       ]), DEDUPE_BATCH_TIMEOUT_MS, '去重单批');
       const cleaned = content.replace(/```(?:json)?/g, '').trim();
       const parsed = JSON.parse(cleaned.slice(cleaned.indexOf('{'), cleaned.lastIndexOf('}') + 1));
       for (const g of parsed.groups ?? []) {
         if (!Array.isArray(g)) continue;
-        rawGroups.push(g.map((n) => i + Number(n)));
+        // 批内序号映射回原始下标；先夹在本批范围内，防止负数/越界漂移到别的批次
+        const mapped = g
+          .filter((n) => Number.isInteger(n) && n >= 0 && n < chunk.length)
+          .map((n) => rest[i + n].orig);
+        rawGroups.push(mapped);
       }
     } catch (err) {
       console.warn(`⚠ 多源去重：一批失败（${err.message}），该批保持原样`);
@@ -394,7 +399,7 @@ async function dedupeNews(items, enriched, chatFn = chatWithFallback, deadline =
 
   const { items: deduped, merged } = applyDedupe(news, rawGroups);
   console.log(merged
-    ? `多源去重：合并 ${merged} 组重复报道`
+    ? `多源去重：合并 ${merged} 组重复报道（标题预合并 ${preMerged} 组）`
     : '多源去重：未发现跨来源重复报道');
   return [...deduped, ...products];
 }

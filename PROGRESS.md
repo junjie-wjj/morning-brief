@@ -703,3 +703,38 @@ git config --global http.https://github.com.proxy http://127.0.0.1:7897
   Team settings 里删除，避免以后再登错。
 - junjie-wjj 团队下有个 10 月 12 日创建的试验项目 shimmering-dieffenbachia-2cc055
   （Agent Runners 产生），确认无用后可在 Netlify 里删除。
+
+## 修复：AI 加工错位与去重漏网（2026-10-24 下午）
+
+### 起因
+
+用户发现昨日发布的 Kimi K3.1 没出现在简报里。排查结论：
+
+- **收录其实没漏**：K3.1 是北京时间 10-23 深夜发布，落在 10-24 期（HN 两条 +
+  Simon Willison + Kimi GitHub 共 4 条相关）。用户查看时 10-24 期尚未生成，属时间差。
+- **但暴露了两个真 bug**：
+  1. AI 加工用**序号**绑定条目（i:0,1,2…），429 限流降级到弱模型后发生编号漂移，
+     一篇音乐视频帖被错标成「Kimi K3.1 Pro发布」（id 1233，DB 核实）。
+  2. 去重完全依赖 LLM 判断，同日同一篇 OpenAI 文章被两个来源各收一次
+     （id 1284/1335）未被合并；且历史上所有期的 dup_of 均为 0。
+
+### 修复
+
+1. **键绑定防错位**（`lib/enrich.mjs` 新增）：条目改用链接哈希短键（6 位）引用，
+   模型必须原样回显键才能绑定；回显不存在/旧式序号一律丢弃，宁缺勿错。
+   `enrichBatch` 提示词与解析全部切换到键模式。
+2. **同标题预合并**（`lib/dedup.mjs` 新增 `normalizeTitle`/`exactTitleGroups`）：
+   跨来源、归一化（去空格标点、小写）标题完全一致的条目纯逻辑直接分组，
+   不依赖 LLM 当天状态；LLM 批次只处理剩余条目，批内序号映射回原始下标并夹在批内。
+   同源相同标题仍视为独立更新（与既有规则一致）。
+3. **搜索匹配补型号名**（`lib/preferences.mjs`）：模型发布类的 match 增加
+   kimi/glm/qwen/deepseek/minimax/moonshot/llama/mistral/grok，
+   裸型号标题（如 "Kimi K3.1 Pro"）也能命中偏好搜索。
+4. **当日数据修复**（直接改云端库）：1233 清空错位 AI 字段回退英文原题、降 1 分进折叠区；
+   1335 标记为 1284 的重复并挂 related。
+
+### 验证
+
+- 新增 9 个单测（键绑定回显/错位攻击/字段兜底、归一化/预合并/同源不合并/衔接 applyDedupe），
+  全套 90/90 通过；`node --check`、`tsc` 通过。
+- 触发 daily.yml（skip_points）在真实环境重跑，验证键绑定加工与「标题预合并 N 组」日志。
