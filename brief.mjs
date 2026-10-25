@@ -693,15 +693,18 @@ async function fetchOpenRouterFree(source) {
   }
   const { added, removed, unchanged } = diffFreeModels(prevIds, current);
   const now = new Date();
+  // 链接带事件+日期的锚点：同一模型先上架后下架（或反复）时两条事件各自成条，
+  // 否则同链接的 upsert 会把"新增"覆盖成"下架"，历史只剩最后一次事件
+  const day = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
   const items = [
     ...added.map((m) => ({
       title: `OpenRouter 新增免费模型：${m.name}（${m.id}）`,
-      link: `https://openrouter.ai/${m.id}`,
+      link: `https://openrouter.ai/${m.id}#added-${day}`,
       date: now,
     })),
     ...removed.map((m) => ({
       title: `OpenRouter 免费模型下架：${m.name}`,
-      link: `https://openrouter.ai/${m.id}`,
+      link: `https://openrouter.ai/${m.id}#removed-${day}`,
       date: now,
     })),
   ];

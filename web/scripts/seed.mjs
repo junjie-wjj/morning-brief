@@ -132,13 +132,22 @@ try {
     let deleted = 0;
     for (const kw of userSet.blockedKeywords) {
       const like = `%${kw.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
-      const r = await db.execute({
-        sql: "DELETE FROM items WHERE LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(zh_title) LIKE ? ESCAPE '\\'",
+      // 先查出命中的链接再连 dup_of 一起删：被删条目如果是主条目，
+      // 它合并的重复报道必须跟着走，否则会留下永远不可见的僵尸行
+      const matches = await db.execute({
+        sql: "SELECT link FROM items WHERE LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(zh_title) LIKE ? ESCAPE '\\'",
         args: [like.toLowerCase(), like.toLowerCase()],
+      });
+      const links = matches.rows.map((r) => String(r.link));
+      if (!links.length) continue;
+      const ph = links.map(() => "?").join(",");
+      const r = await db.execute({
+        sql: `DELETE FROM items WHERE link IN (${ph}) OR dup_of IN (${ph})`,
+        args: [...links, ...links],
       });
       deleted += r.rowsAffected;
     }
-    console.log(`屏蔽词存量清理：删除 ${deleted} 条已入库的命中条目`);
+    console.log(`屏蔽词存量清理：删除 ${deleted} 条已入库的命中条目（含合并的重复报道）`);
   }
 } catch {
   /* 偏好文件不存在（本地 seed / 导出步骤失败）时跳过，不影响导入 */

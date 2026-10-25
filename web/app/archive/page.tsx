@@ -147,7 +147,7 @@ export default async function Archive({
         {!q && issueRows.length > 0 && (
           <nav aria-label="按期号浏览" className="mt-3 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
             <Link
-              href="/archive"
+              href={withParams({ issue: null })}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors ${
                 issueSel
                   ? "border border-line bg-white text-ink-soft hover:border-amber-300"
@@ -159,7 +159,7 @@ export default async function Archive({
             {issueRows.map(({ issue, n }) => (
               <Link
                 key={issue}
-                href={`/archive?issue=${issue}`}
+                href={withParams({ issue: issue! })}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors ${
                   issueSel === issue
                     ? "bg-ink text-paper"
