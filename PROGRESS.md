@@ -942,3 +942,17 @@ Secret（经浏览器完成，含 sudo 验证）。
 ### 待办（积分恢复后）
 
 - 手动触发一次 deploy-web，让删除功能（🗑 按钮 + 批量清除）上线。
+
+## 关注方向开关（2026-10-25）
+
+设置页新增「关注方向」板块：免费额度 / 榜单动态 / MCP·插件·技能 / 价格变动 /
+OpenRouter 免费模型 五个勾选（不勾=全部启用，全不选按全部启用兜底防误操作）。
+选择经「设置 → 云端 settings → export-feedback → preferences.json →
+brief.mjs 过滤固定搜索与 OpenRouter 源」链路生效，次日凌晨更新应用。
+
+- lib/watch-topics.mjs（纯逻辑 + 5 测试）：filterFixedTerms / watchOpenRouter
+- db.ts 新增 WATCH_TOPICS 常量与 watchTopics 字段；API 校验（缺省视同 null，
+  修复了首版校验误拒旧格式请求的 bug）
+- brief.mjs：按勾选过滤固定搜索词；OpenRouter 监控可整体关闭
+
+验证：107/107 测试；本地实测 保存（旧格式/新格式均 200）→ 落库 → 导出链路全通。

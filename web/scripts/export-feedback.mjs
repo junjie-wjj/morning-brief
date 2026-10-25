@@ -92,6 +92,7 @@ try {
       : [],
     blockMode: saved.blockMode === 'drop' ? 'drop' : 'hide',
     dropLowScore: saved.dropLowScore === true,
+    watchTopics: Array.isArray(saved.watchTopics) ? saved.watchTopics : null,
   };
   console.log(`抓取侧设置：屏蔽词 ${data.userSettings.blockedKeywords.length} 个（${data.userSettings.blockMode === 'drop' ? '彻底不抓' : '仅隐藏'}）· 低分不入库 ${data.userSettings.dropLowScore ? '开' : '关'}`);
 } catch (err) {

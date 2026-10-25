@@ -3,6 +3,9 @@ import { createClient, type Client } from "@libsql/client";
 export type ItemStatus = "unread" | "read" | "later";
 
 // 筛选偏好：单用户应用，存在数据库里以便跨设备一致
+// 关注方向名单：与流水线侧 lib/watch-topics.mjs 的 WATCH_TOPICS 保持一致
+export const WATCH_TOPICS = ["免费额度", "榜单动态", "MCP/插件/技能", "价格变动", "OpenRouter 免费模型"] as const;
+
 export interface Settings {
   minScore: number;            // 兴趣分下限（产品条目不参与）
   tags: string[] | null;       // null = 全部分类
@@ -13,6 +16,7 @@ export interface Settings {
   hideDownvoted: boolean;      // 隐藏点过「不感兴趣」的条目
   blockMode: "hide" | "drop";  // 屏蔽词作用范围：仅隐藏（默认）/ 彻底不抓（每日更新时从源头丢弃并清理档案）
   dropLowScore: boolean;       // 每日更新时兴趣分 ≤2 的资讯不入库（省 AI 额度）
+  watchTopics: string[] | null; // 关注方向（固定搜索+OpenRouter）：null = 全部启用，每晚流水线生效
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hideDownvoted: true,
   blockMode: "hide",
   dropLowScore: false,
+  watchTopics: null,
 };
 
 export interface ItemRow {

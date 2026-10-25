@@ -84,6 +84,7 @@ import { buildDedupePrompt, applyDedupe, exactTitleGroups } from './lib/dedup.mj
 import { itemKey, applyEnrichResponse } from './lib/enrich.mjs';
 import { selectSearchTerms } from './lib/preferences.mjs';
 import { dropBlockedItems, dropLowScoreItems } from './lib/blocklist.mjs';
+import { filterFixedTerms, watchOpenRouter } from './lib/watch-topics.mjs';
 import { readFileSync } from 'node:fs';
 
 // 成本控制：只对高分条目做（正文比标题长几十倍，全量会让调用量涨十倍以上）。
@@ -1084,23 +1085,31 @@ async function main() {
       days: 7,
     });
   }
-  // 固定搜索：用户确认的四个关注方向，不依赖反馈统计
-  sources.push({
-    name: '固定搜索 · 额度/榜单/工具/价格',
-    type: 'prefs',
-    terms: FIXED_SEARCH_TERMS,
-    max: 10,
-    days: 7,
-  });
+  // 固定搜索：用户确认的四个关注方向，不依赖反馈统计；
+  // 设置页「关注方向」的勾选（watchTopics）在这里过滤，明天生效
+  const activeTerms = filterFixedTerms(FIXED_SEARCH_TERMS, userSet.watchTopics);
+  if (activeTerms.length) {
+    sources.push({
+      name: '固定搜索 · 额度/榜单/工具/价格',
+      type: 'prefs',
+      terms: activeTerms,
+      max: 10,
+      days: 7,
+    });
+  } else if (Array.isArray(userSet.watchTopics) && userSet.watchTopics.length) {
+    console.log('ℹ 关注方向：固定搜索全部被关闭，本次不执行');
+  }
   // OpenRouter 免费模型监控：昨天的快照来自云端（经偏好文件带出），今天的快照抓完存变量
   let openRouterSnapshot = null;
-  sources.push({
-    name: 'OpenRouter · 免费模型监控',
-    type: 'openrouter-free',
-    max: 6,
-    prevIds: Array.isArray(prefStats?.openrouterFree) ? prefStats.openrouterFree : [],
-    onSnapshot: (ids) => { openRouterSnapshot = ids; },
-  });
+  if (watchOpenRouter(userSet.watchTopics)) {
+    sources.push({
+      name: 'OpenRouter · 免费模型监控',
+      type: 'openrouter-free',
+      max: 6,
+      prevIds: Array.isArray(prefStats?.openrouterFree) ? prefStats.openrouterFree : [],
+      onSnapshot: (ids) => { openRouterSnapshot = ids; },
+    });
+  }
   const results = await Promise.all(sources.map(fetchSource));
   const okResults = results.filter((r) => r.status === 'ok');
   const failedCount = results.length - okResults.length;

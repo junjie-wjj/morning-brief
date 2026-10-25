@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSettings, saveSettings, type Settings } from "@/lib/db";
+import { getSettings, saveSettings, WATCH_TOPICS, type Settings } from "@/lib/db";
 
 const VALID = (v: unknown): v is Settings => {
   if (!v || typeof v !== "object") return false;
@@ -12,7 +12,10 @@ const VALID = (v: unknown): v is Settings => {
     && typeof s.hideDownvoted === "boolean"
     && Array.isArray(s.blockedKeywords) && s.blockedKeywords.every((i) => typeof i === "string")
     && (s.blockMode === "hide" || s.blockMode === "drop")
-    && typeof s.dropLowScore === "boolean";
+    && typeof s.dropLowScore === "boolean"
+    && (s.watchTopics == null
+      || (Array.isArray(s.watchTopics)
+        && s.watchTopics.every((i) => typeof i === "string" && (WATCH_TOPICS as readonly string[]).includes(i))));
 };
 
 export async function GET() {

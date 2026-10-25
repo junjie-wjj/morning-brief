@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { Settings } from "@/lib/db";
+import { WATCH_TOPICS, type Settings } from "@/lib/db";
 
 const DEFAULTS: Settings = {
   minScore: 3,
@@ -14,6 +14,7 @@ const DEFAULTS: Settings = {
   hideDownvoted: true,
   blockMode: "hide",
   dropLowScore: false,
+  watchTopics: null,
 };
 
 type MultiField = "tags" | "sources" | "products";
@@ -167,6 +168,26 @@ export default function SettingsForm({
               {product}
             </Chip>
           ))}
+        </div>
+      </Section>
+
+      <Section title="关注方向" hint="每天固定搜索这些主题并监控 OpenRouter 免费模型上下架。不勾选表示全部启用；修改后明天早上的更新生效。">
+        <div className="flex flex-wrap gap-2">
+          {WATCH_TOPICS.map((topic) => {
+            const on = s.watchTopics === null || s.watchTopics.includes(topic);
+            return (
+              <Chip key={topic} checked={on} onChange={() => {
+                const set = new Set(s.watchTopics ?? WATCH_TOPICS);
+                if (set.has(topic)) set.delete(topic);
+                else set.add(topic);
+                // 全选等价于「不限」，存 null；全不选同样存 null 但语义是"至少保留全部"
+                // ——空列表在流水线侧按"全部启用"处理，避免一次误操作把搜索全关掉
+                setS({ ...s, watchTopics: set.size === WATCH_TOPICS.length ? null : [...set] });
+              }}>
+                {topic}
+              </Chip>
+            );
+          })}
         </div>
       </Section>
 
