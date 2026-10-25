@@ -1,252 +1,91 @@
-# 信息早餐（morning-brief）V0
+# 信息早餐 · morning-brief
 
-每天自动抓取 AI 领域的官方信息源，生成一份纯静态的简报网页。**零依赖、零成本**；可选接入智谱免费的 GLM-Flash 模型，自动把条目加工成「中文标题 + 摘要 + 兴趣打分 + 低分折叠」（不配置则展示原始抓取列表）。这是正式开发（见 IDEA.md）之前的 V0 验证版，先跑两周确认"我真的会每天看"，再决定是否扩展。
+> **一份每天早上 7 点自动生成的个人 AI 资讯早餐** —— 从 6 类信息源抓取、LLM 加工成中文摘要并打分、按你的口味个性化排序，全链路零成本运行于免费额度之上。
 
-## 在线地址
+[![daily pipeline](https://github.com/junjie-wjj/morning-brief/actions/workflows/daily.yml/badge.svg)](https://github.com/junjie-wjj/morning-brief/actions/workflows/daily.yml)
+[![deploy](https://github.com/junjie-wjj/morning-brief/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/junjie-wjj/morning-brief/actions/workflows/deploy-web.yml)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-| 版本 | 地址 | 说明 |
-|---|---|---|
-| **交互应用（推荐）** | https://morning-brief-junjie.netlify.app | Next.js + Turso 云数据库；带已读/稍后读，数据云端保存；每天早上自动更新 |
-| 静态简报 | https://junjie-wjj.github.io/morning-brief/ | V0 纯静态页，每天 7 点自动生成 |
+**在线演示**：https://morning-brief-junjie.netlify.app （示例站点，每日自动更新）
 
-## 本地开发（应用）
-
-```bash
-cd web
-npm run dev            # 启动本地应用 → http://localhost:3000（用本地文件数据库）
-
-# 更新数据（在仓库根目录执行抓取，然后导入）
-node brief.mjs         # 抓取 + LLM 加工 → docs/data.json
-node brief.mjs --html-only   # 不重新抓取，只用现有 data.json 重渲染静态页（回填后同步用）
-cd web
-npm run seed           # 导入本地数据库（开发用）
-npm run seed:cloud     # 导入云端 Turso（线上应用的数据源，需要 web/.env.cloud）
-```
-
-## 访问密码（可选）
-
-默认不启用。在 **Netlify → Site settings → Environment variables** 添加 `APP_PASSWORD` 后，
-所有页面和 API 都需要先登录：
-
-- 登录页：`/login`；登录成功后写入 30 天 HttpOnly cookie。
-- 退出登录：设置页底部（仅在启用密码时显示）。
-- 本地测试：`APP_PASSWORD=test123 npm start`（或 `npm run dev`），不需要重新构建。
-- 忘记密码：在 Netlify 改一个新值，旧 cookie 会自动失效。
-- 未设置 `APP_PASSWORD` 时保持公开访问，方便本地开发。
-
-注意：密码只保护访问，不加密数据库内容；数据在 Turso 中仍是明文（传输走 HTTPS）。
-
-## 数据备份（每周，加密）
-
-`backup` 工作流每周一北京时间 02:00 把云端数据库导出并加密，作为 GitHub Actions Artifact 保留 90 天。
-
-备份内容：`items`（含已读/稍后读）、`settings`、`feedback`。
-
-启用步骤：
-
-1. GitHub → Settings → Secrets and variables → Actions，添加 `BACKUP_PASSPHRASE`
-   （备份口令，不要和登录密码相同）。
-2. 已有的 `LIBSQL_URL` / `LIBSQL_AUTH_TOKEN` secret 会被复用。
-3. 手动触发：Actions → backup → Run workflow。
-
-本地手动备份/恢复：
-
-```bash
-cd web
-BACKUP_PASSPHRASE=你的口令 npm run backup            # 云端
-BACKUP_PASSPHRASE=你的口令 npm run backup -- --local # 本地库
-
-BACKUP_PASSPHRASE=你的口令 npm run restore -- --file data/backup-YYYY-MM-DD.enc --dry-run
-BACKUP_PASSPHRASE=你的口令 npm run restore -- --file data/backup-YYYY-MM-DD.enc --yes
-```
-
-加密方式是 AES-256-GCM + scrypt：artifact 即使被下载，没有口令也解不开。
-**口令丢失 = 备份无法恢复**，请存到密码管理器。
-
-恢复行为：`items` 按 `link` upsert（包含已读/稍后读状态），`settings` / `feedback` 清空后按备份覆盖；
-建议先跑 `--dry-run` 确认条数。
-
-## 筛选与个性化（顶栏「设置」）
-
-首页只展示你关心的内容，规则全部可调（`/settings`）：
-
-| 设置项 | 作用 |
+| 首页 · 今日必读与个性化分组 | 历史页 · 全文搜索与高亮 |
 |---|---|
-| 兴趣分下限 | 默认 3 分；低于它的资讯收进首页底部折叠区 |
-| 分类 | 多选，只留你关心的分类（模型发布/产品动态/研究进展/福利资源/行业动态/其他） |
-| 来源 | 关掉不想看的源（量子位、HN、Reddit、TechCrunch、官方博客……） |
-| 产品关注清单 | 12 个产品可多选，默认全部保留 |
-| 只显示未读 | 隐藏已读条目 |
-| 屏蔽关键词 | 标题包含即隐藏（一行一个） |
-| 隐藏 👎 条目 | 默认开启 |
+| ![首页](docs/screenshots/01-home.png) | ![搜索](docs/screenshots/02-archive-search.png) |
 
-**反馈学习**：每条卡片有 👍（有用）/ 👎（不感兴趣），再点一次撤销。
-👍 会提升该条排序（+1.5），👎 会降权（-3）并从首页隐藏；
-分类与来源也会按反馈累计偏好（每个 👍 +0.4 / 👎 -0.8，封顶 ±2）。
-所以用得越久，「今日必读」越贴近你的口味。
+| 设置 · 系统眼中的你（偏好画像） | 移动端 / PWA |
+|---|---|
+| ![画像](docs/screenshots/03-settings-insights.png) | ![移动端](docs/screenshots/04-mobile.png) |
 
-边界：筛选只影响首页显示，不删除数据；`/archive` 历史页始终完整。产品条目只受「产品关注清单」约束。
+## 它解决什么问题
 
-## 偏好搜索（简单版）
+AI 资讯每天几百条，散落在 HN、官方博客、GitHub、社区论坛里。这个项目把"刷信息流"变成"读一份 3 分钟的早餐"：
 
-👍/👎 不只影响页面排序，还会变成**下一次抓取的额外搜索词**：
+- **每天一期**：早上 7 点（北京时间）自动抓取 → AI 加工 → 入库 → 网站实时更新；
+- **越用越懂你**：每条新闻可 👍/👎，反馈实时影响排序；净赞 ≥2 的主题第二天自动加入搜索；
+- **垃圾提前拦截**：三道入库闸门（屏蔽词 · 低分不入库 · 分类分数门槛），AI 额度只花在你要看的内容上。
 
-- 净赞（赞 − 踩）≥ 2 的**产品名** → 加进 Google 新闻 + Hacker News 搜索
-- 净赞 ≥ 2 的**分类** → 用预设短语搜索：
-  - 福利资源 → `free LLM API`
-  - 模型发布 → `new AI model`
-  - 研究进展 → `AI research paper`
-- 每次最多 5 个词、抓回 8 条；标题必须命中匹配规则，避免搜索引擎的模糊噪音
-- 反馈不足时不启用，完全不影响原有抓取
+## 功能一览
 
-数据流：
+**内容管线**：6 类固定信息源（官方博客/HN/GitHub/HF/社区/中文媒体）+ 偏好搜索 + 4 个可勾选的固定关注方向（免费额度/榜单/MCP·插件·技能/价格）+ OpenRouter 免费模型上下架监控 · LLM 中文标题/摘要/兴趣分 · 多源去重（同事件合并） · 原文精简版（不打开原网页也能读）
 
-```text
-应用写 feedback 表
-  → web/scripts/export-feedback.mjs 聚合成 web/data/preferences.json
-  → brief.mjs 读取并追加「偏好搜索 · 你赞过的主题」源
+**阅读体验**：今日必读 + 个性化分组 · 已读/稍后读/一键已读 · 关键词搜索（高亮 + 时间/相关度排序） · 历史页按期导航 · 单条删除与批量清理 · 屏蔽词（仅隐藏/彻底不抓双模式） · 低分折叠 · PWA 安装到手机主屏
+
+**工程与运维**：访问密码门（可选） · 每周加密备份（scrypt + AES-256-GCM，GitHub Artifact 保留 90 天）+ 恢复脚本 · 全链路 CI/CD · 109 个单元测试 · 凭证全部走环境变量
+
+## 架构
+
+```mermaid
+flowchart LR
+  subgraph 每日管线["GitHub Actions · 每天 07:00（北京时间）"]
+    A[6 类固定信息源<br/>RSS / HN / GitHub / HF] --> B
+    A2[偏好搜索<br/>用户反馈驱动] --> B
+    A3[固定方向搜索<br/>额度/榜单/工具/价格] --> B
+    A4[OpenRouter API<br/>免费模型 diff] --> B
+    B[LLM 加工<br/>中文标题·摘要·兴趣分] --> C{三道入库闸门<br/>屏蔽词/低分/分类门槛}
+    C -->|通过| D[多源去重<br/>同事件合并]
+  end
+  D --> E[(Turso · libSQL)]
+  E --> F[Next.js 16 SSR<br/>Netlify 免费托管]
+  F --> G[📱 浏览器 / PWA]
+  G -. 👍/👎 反应 .-> E
+  E -. 次日偏好统计 .-> A2
+  E == 每周 ==> H[🔐 加密备份<br/>GitHub Artifact]
 ```
 
-手动运行（本地库）：
+**成本**：全部跑在免费额度上 —— GitHub Actions（公共仓库免费）、智谱 GLM-Flash（免费档，限流自动降级备用模型）、Turso 免费档、Netlify 免费档（注意：部署消耗积分，每月约 20 次预算，故部署为手动触发）。
 
-```bash
-cd web
-npm run export:preferences:local   # 云端用 npm run export:preferences
-cd ..
-node brief.mjs
+## 技术亮点
+
+- **LLM 输出的防御性处理**：条目用链接哈希短键绑定防"编号错位"（弱模型把 A 的标题安到 B 头上的真实事故）；去重分组加标题亲和度防线；提示词注入防护；LLM 失败逐级降级（换模型 → 原始抓取）。
+- **反馈快照防"删除失忆"**：点赞时把分类快照进反馈行，统计不依赖 join 条目——删除新闻不再让偏好画像失真（真实踩坑：批量删踩过的新闻后，系统误以为用户喜欢上了被踩的产品）。
+- **运行时限三层熔断**：整条管线/单批/单条三级超时 + 主动 exit，治好免费 LLM 429 重试导致的 40 分钟 CI 挂死。
+- **无状态 CI 的跨天状态**：OpenRouter 监控的每日快照经「云端 settings → 偏好导出 → data.json → seed 回写」往返，实现纯无状态 Runner 上的 diff。
+- **完整的工程日志**：[PROGRESS.md](PROGRESS.md) 记录了每个决策的动机、事故与修复（Netlify 积分耗尽、去重误合并、OAuth 票据超时等），比代码本身更能说明工程方式。
+
+## 自部署（约 30 分钟，全部免费）
+
+1. **Fork 本仓库**；
+2. **建数据库**：注册 [Turso](https://turso.tech) → 建库 → 拿到 `LIBSQL_URL` 和 `LIBSQL_AUTH_TOKEN`；
+3. **配 AI Key**：注册[智谱开放平台](https://open.bigmodel.cn)（免费）→ 拿到 `LLM_API_KEY`；
+4. **配 GitHub Secrets**：仓库 Settings → Secrets and variables → Actions，添加上面三个值（可选：`BACKUP_PASSPHRASE` 备份口令、`NETLIFY_AUTH_TOKEN` 部署令牌）；
+5. **跑起来**：手动触发 Actions 里的 `daily` 工作流（生成第一期数据）；再到 [Netlify](https://netlify.com) 新建站点连上 fork 的仓库（根目录 `web/`，构建命令 `npm run build`），环境变量填 `LIBSQL_URL / LIBSQL_AUTH_TOKEN`（可选 `APP_PASSWORD` 访问密码）——之后每天 7 点自动更新。
+
+环境变量完整清单见 [.env.example](.env.example)。本地开发：`cd web && npm i && npm run dev`（本地文件库），`node brief.mjs` 手动跑一次管线，`npm test`（仓库根目录）跑 109 个测试。
+
+## 项目结构
+
+```
+brief.mjs              # 每日管线：抓取 → LLM 加工 → 闸门 → 去重 → 出刊
+lib/                   # 管线纯逻辑（去重/偏好/闸门/OpenRouter/文章抽取）+ 测试
+web/                   # Next.js 16 应用（App Router + SSR + Tailwind v4）
+  app/                 #   页面与 API 路由 / components / PWA manifest
+  lib/                 #   数据层（Turso 客户端/筛选/画像统计）
+  scripts/             #   seed 导入 · 偏好导出 · 加密备份与恢复
+.github/workflows/     # daily（每天出刊）/ deploy-web（手动）/ backup（每周备份）
+docs/                  # 静态简报（GitHub Pages 备用入口）+ 截图
+PROGRESS.md            # 完整工程日志：决策、事故、修复与验证
 ```
 
-线上每日任务已自动包含这一步（`.github/workflows/daily.yml` 在抓取前导出云端反馈）。
-`web/data/preferences.json` 已 gitignore，不会提交。
+## License
 
-边界：RSS 源无法按关键词扩展，只有 Google 新闻 / HN 这类搜索源能加词；进阶版（让 LLM 从点赞文章里提取主题词）等反馈积累后再做。
-
-## 首页与期号
-
-- 首页只显示**最新一期**（北京时间日期，如 `2026-10-21`），页头标注「最新一期 · 日期 · 共 N 条」
-- 兴趣分 ≤ 2 的资讯默认收进页面底部的折叠区，未评分条目不隐藏；产品追踪始终展示
-- 全部历史在 **`/archive`**（顶栏「历史」入口），按期号分组回看
-
-## 多源去重
-
-同一事件被多家媒体同时报道时，首页只保留一条主条目（兴趣分最高，同分取更早），
-其余条目的标题与链接以「相关报道」附在卡片下方，并从首页与历史页隐藏。
-
-- 由 LLM 判断「是否同一事件」并分组（每批 40 条，单批失败只影响该批，其余照常）
-- 只在不同来源之间合并；**每组内每个来源最多一条**，同一来源的多条（例如同一仓库的多个 commit）视为独立更新，绝不合并
-- 产品追踪条目不参与事件去重，只做链接级去重（同一链接只出现一次）
-- 去重不删除数据：重复条目仍在数据库里（`dup_of` 列指向主条目），随时可追溯
-
-## 信息源（行业资讯层）
-
-| 栏目 | 来源 | 时效窗口 |
-|---|---|---|
-| 免费 LLM API 动态 | GitHub 仓库 mnfst/awesome-free-llm-apis（约 1 万星）的提交 | 最新 4 条 |
-| Hacker News · AI 热帖 | Algolia 官方接口，按 OpenAI/Claude/DeepSeek 等 8 个关键词过滤，5 分以上 | 48 小时 |
-| Hugging Face / r/LocalLLaMA / Simon Willison | 官方 RSS | 3-7 天 |
-| TechCrunch · AI 新闻 | 官方 RSS | 3 天 |
-| 量子位 · AI 资讯 | 官方 RSS | 48 小时 |
-
-## 产品追踪（12 个产品，第一手）
-
-DeepSeek、智谱 GLM、Kimi、Qwen、MiniMax、Claude、OpenAI / Codex、Gemini、OpenCode、Cursor、Qoder、WorkBuddy。
-每个产品挂 1-2 类来源，加删产品改 `brief.mjs` 顶部的 `PRODUCTS` 数组即可。
-
-| 来源类型 | 用途 | 说明 |
-|---|---|---|
-| Hugging Face 模型库 | 开源模型发布 | 公开 API，过滤 BF16/FP8/GGUF 等量化副本 |
-| GitHub Releases（Atom） | 工具版本更新 | `releases.atom`，无 API 限流；跳过 alpha/beta/rc |
-| GitHub 组织发布扫描 | 组织下各仓库的 Release | 走 GitHub API（每组织 1+4 次调用/日） |
-| 官方博客 | 闭源模型与公司新闻 | 复用 OpenAI / DeepMind / Anthropic 官方源 |
-| 关键词新闻 | 无官方渠道的产品（Cursor/Qoder/WorkBuddy） | Google 新闻 RSS（中文）+ Hacker News 搜索（英文社区） |
-
-页面上「产品追踪」按产品分组（最新更新时间排序，每产品最多 3 条），不参与资讯层的兴趣分过滤；同一链接只出现一次（产品追踪优先）。
-
-时效说明：页面按"今天 / 昨天 / N 天前"显示，今天的条目橙色高亮。官方大厂博客**本来就不是日更**——一周几篇是常态，"每天都有新内容"主要来自 HN·AI 热帖、量子位、TechCrunch 这几个日更栏目；官方栏目经常显示"近 7 天无更新"，这是现实，不是故障。
-
-已知边界：Hugging Face、Reddit、Simon Willison、GitHub 在国内网络环境下本地抓不到（栏目会显示原因），部署到 GitHub Actions 后自动恢复；本地跑可用 `NODE_USE_ENV_PROXY=1` + 代理。免费 token / 福利类消息的覆盖靠"免费 LLM API 动态"和 r/LocalLLaMA，公众号/X 上的瞬时福利仍抓不到（X API 收费，不做）。国内媒体的 RSS 质量参差（机器之心的 feed 已死，故未收录）。
-
-## 立即体验（本地）
-
-需要 Node.js 18+（无任何第三方依赖，不需要 npm install）：
-
-```bash
-node brief.mjs
-```
-
-然后用浏览器打开 `docs/index.html` 即可。每天想看就跑一次，等价于"手动版早餐"。
-
-## 开启 AI 中文摘要与打分（免费，推荐）
-
-不配置 LLM 时，页面是原始标题列表（英文源居多）；配置后每条自动变成**中文标题 + 一两句中文摘要 + 分类 + 1-5 兴趣分**：顶部生成「今日必读 3 条」，低分营销内容折叠到页面底部。
-
-1. 到智谱开放平台 [bigmodel.cn](https://bigmodel.cn) 注册并创建 API Key。GLM-Flash 系列模型免费（如 `glm-4.7-flash`，以控制台显示的免费模型为准），月成本 0 元；也可在 `brief.mjs` 顶部换成 DeepSeek 等任何 OpenAI 兼容接口（设 `LLM_BASE_URL` / `LLM_MODEL` 环境变量）。
-2. 本地使用：Git Bash 里 `export LLM_API_KEY=你的key` 后再运行 `node brief.mjs`（PowerShell 写法：`$env:LLM_API_KEY="你的key"`）。
-3. GitHub Actions：仓库 **Settings → Secrets and variables → Actions → New repository secret**，名称 `LLM_API_KEY`，值填你的 key，定时任务会自动带上。
-
-摘要由小模型生成，可能有错漏——它只负责帮你**筛**，结论以原文为准。
-
-## 原文精简版：不打开原网页也能读（默认开启）
-
-光有摘要还是得点出去才知道讲了什么。所以对**高分条目（兴趣分 ≥ 4）**会额外抓取原文正文，
-生成一份「精简版」：
-
-- **交互应用**：点卡片空白处就地展开读完，不必跳转；想深入再点标题跳原文。
-- **静态简报**：每条高分的下面有一个「📖 原文精简版」折叠块，点开即读。
-
-正文抓取按三级降级，都是免费方案：
-
-| 顺序 | 方式 | 解决什么 |
-|---|---|---|
-| ① | 直抓 | 大多数站点的正常路径 |
-| ② | Reddit 单帖 `.rss` | Reddit 直抓只有 6 个字（JS 渲染） |
-| ③ | [Jina Reader](https://jina.ai/reader/) 代理 | OpenAI 官方 403、量子位超时等 |
-
-抓不到时会**如实标注**（如 Reuters 付费墙），不会假装成功。
-
-**为什么分段而不是整篇丢给模型**：一次性把 8000 字塞进去，长文中段的信息最容易丢。
-所以先分段（默认每段 2000 字）逐段抽取，再合并压缩——这样「关键信息不漏」是结构性保证，
-而不是指望模型自觉。压缩时**数字与风险取「原值 ∪ 模型补充」**，模型漏给就回退原值。
-
-**调节旋钮**（环境变量，见 `brief.mjs` 顶部）：
-
-```bash
-POINTS_MIN_SCORE=1    # 降到 1 则所有条目都生成（默认 4）
-POINTS_MAX_ITEMS=30   # 单次上限（默认 15）
-POINTS_CONCURRENCY=2  # 并发，限流严重时调低（默认 3）
-node brief.mjs --skip-points   # 完全跳过这一块，只做摘要
-```
-
-**注意**：分段会让 LLM 调用量涨十倍以上。免费档限流严重时，建议只对高分条目开，
-或换用付费模型（DeepSeek 等，每月几元）。
-
-## 每天早上自动更新（GitHub Actions + Pages，免费）
-
-1. 在 GitHub 上新建一个**公开**仓库（如 `morning-brief`，公开仓库的 Pages 才免费）。
-2. 在本文件夹（Git Bash）执行：
-
-   ```bash
-   git init
-   git add .
-   git commit -m "morning-brief v0"
-   git branch -M main
-   git remote add origin https://github.com/<你的用户名>/morning-brief.git
-   git push -u origin main
-   ```
-
-3. 打开仓库页面 → **Settings → Pages → Build and deployment → Source 选择 "GitHub Actions"**（只需设置这一次）。
-4. 完成。之后每天**北京时间 07:00** 自动生成并发布，访问：
-
-   `https://<你的用户名>.github.io/morning-brief/`
-
-想立即看效果而不等第二天早上：仓库 **Actions** 页 → 选 **daily-brief** → **Run workflow**。
-
-### 注意事项
-
-- GitHub 定时任务不保证准点，可能比设定时间晚几分钟到半小时。
-- 仓库连续 60 天没有任何提交，定时任务会被 GitHub 自动停用（收到邮件通知后手动 Run 一次即可恢复）。
-- 加 / 删信息源：编辑 [brief.mjs](brief.mjs) 顶部的 `SOURCES` 数组，每项含栏目名、类型（`rss` / `anthropic` / `hn` / `gh`）和地址。
-
-## 下一步（V0 验证通过后）
-
-见 [IDEA.md](IDEA.md)：LLM 摘要与"为什么值得你看"、按兴趣打分、已读/稍后读、完整 Web 界面等。V0 里哪些源你真的在看、哪些从来没人点，就是加 LLM 打分时最好的依据。
+[MIT](LICENSE) —— 可自由查看、运行、修改和二次部署。
