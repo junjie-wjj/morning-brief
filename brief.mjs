@@ -83,7 +83,7 @@ import { mapHfModels, mapReleaseItems, mapNewsItems, mapHnHits, dedupeByLink } f
 import { buildDedupePrompt, applyDedupe, exactTitleGroups } from './lib/dedup.mjs';
 import { itemKey, applyEnrichResponse } from './lib/enrich.mjs';
 import { selectSearchTerms } from './lib/preferences.mjs';
-import { dropBlockedItems, dropLowScoreItems } from './lib/blocklist.mjs';
+import { dropBlockedItems, dropLowScoreItems, dropByTagScoreRules } from './lib/blocklist.mjs';
 import { filterFixedTerms, watchOpenRouter } from './lib/watch-topics.mjs';
 import { readFileSync } from 'node:fs';
 
@@ -1158,6 +1158,17 @@ async function main() {
       enriched = await enrichWithLLM(flat, pipelineDeadline);
     } catch (err) {
       aiNote = `AI 加工失败（${err.message}），本次展示原始抓取`;
+    }
+  }
+
+  // 「分类分数门槛」：研究进展类内容要求 AI 打分 ≥4 才入库（用户确认：
+  // 低分论文全不要，但智谱 ZCode 这类 4 分研究工具情报保留）。
+  if (enriched) {
+    const { kept, dropped } = dropByTagScoreRules(flat, enriched);
+    if (dropped.length) {
+      console.log(`🚫 分类分数门槛：丢弃 ${dropped.length} 条（研究进展 <4 分）`);
+      flat = kept;
+      for (const it of dropped) enriched.delete(it.link);
     }
   }
 
