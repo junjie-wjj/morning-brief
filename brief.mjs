@@ -1075,6 +1075,10 @@ async function main() {
       : `偏好搜索：反馈不足（${prefStats.feedbackCount} 条，需同一主题净赞 ≥ 2），本次沿用固定搜索词`);
   }
 
+  // 用户抓取侧设置（屏蔽词模式/低分开关/关注方向勾选）：声明要早于下方
+  // sources 组装——固定搜索与 OpenRouter 监控都按它过滤
+  const userSet = prefStats?.userSettings ?? {};
+
   const sources = [...SOURCES];
   if (prefTerms.length) {
     sources.push({
@@ -1140,7 +1144,7 @@ async function main() {
 
   // 屏蔽词「彻底不抓」：在 AI 加工之前丢弃，省下加工额度与正文抓取。
   // 只能匹配原始标题（还没有中文标题）；「仅隐藏」模式不在这一层动数据。
-  const userSet = prefStats?.userSettings ?? {};
+  // （userSet 已在 main 开头声明）
   if (userSet.blockMode === 'drop' && Array.isArray(userSet.blockedKeywords) && userSet.blockedKeywords.length) {
     const { kept, dropped } = dropBlockedItems(flat, userSet.blockedKeywords);
     if (dropped.length) {
