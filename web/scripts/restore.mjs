@@ -95,7 +95,7 @@ await db.execute(`CREATE TABLE IF NOT EXISTS items (
   related TEXT
 )`);
 await db.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
-await db.execute("CREATE TABLE IF NOT EXISTS feedback (link TEXT PRIMARY KEY, verdict TEXT NOT NULL, updated_at TEXT NOT NULL)");
+await db.execute("CREATE TABLE IF NOT EXISTS feedback (link TEXT PRIMARY KEY, verdict TEXT NOT NULL, updated_at TEXT NOT NULL, tag TEXT, product TEXT)");
 
 const ITEM_COLS = [
   "link", "date", "source", "title", "zh_title", "summary", "tag", "score", "status",
@@ -122,8 +122,8 @@ await db.batch(settingStmts, "write");
 const feedbackStmts = [
   { sql: "DELETE FROM feedback", args: [] },
   ...(data.feedback ?? []).map((f) => ({
-    sql: "INSERT INTO feedback (link, verdict, updated_at) VALUES (?, ?, ?)",
-    args: [f.link, f.verdict, f.updated_at ?? new Date().toISOString()],
+    sql: "INSERT INTO feedback (link, verdict, updated_at, tag, product) VALUES (?, ?, ?, ?, ?)",
+    args: [f.link, f.verdict, f.updated_at ?? new Date().toISOString(), f.tag ?? null, f.product ?? null],
   })),
 ];
 await db.batch(feedbackStmts, "write");

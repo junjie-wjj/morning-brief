@@ -1,12 +1,19 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import NavLinks from "./components/NavLinks";
+import SwRegister from "./components/SwRegister";
 import { IconSun } from "./components/Icons";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "信息早餐",
   description: "每天自动生成的 AI 领域中文简报",
+  manifest: "/manifest.webmanifest",
+  icons: { apple: "/icon-180.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#F59E0B",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -44,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p>morning-brief · 每天自动更新</p>
           </div>
         </footer>
+        <SwRegister />
       </body>
     </html>
   );

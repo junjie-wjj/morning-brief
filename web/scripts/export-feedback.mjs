@@ -41,10 +41,11 @@ const empty = {
 
 let rows = [];
 try {
+  // 优先读反馈自带的快照列（条目删除后统计不失真），老数据回退到 join 现存条目
   const rs = await db.execute(`
-    SELECT f.verdict, i.product, i.tag, COUNT(*) AS c
-    FROM feedback f JOIN items i ON i.link = f.link
-    GROUP BY f.verdict, i.product, i.tag
+    SELECT f.verdict, COALESCE(f.tag, i.tag) AS tag, COALESCE(f.product, i.product) AS product, COUNT(*) AS c
+    FROM feedback f LEFT JOIN items i ON i.link = f.link
+    GROUP BY f.verdict, COALESCE(f.tag, i.tag), COALESCE(f.product, i.product)
   `);
   rows = rs.rows;
 } catch (err) {

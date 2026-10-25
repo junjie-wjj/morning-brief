@@ -1,11 +1,11 @@
-import { getFilterOptions, getSettings } from "@/lib/db";
+import { getFilterOptions, getInsights, getSettings } from "@/lib/db";
 import SettingsForm from "./SettingsForm";
 import { IconSliders } from "../components/Icons";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const [settings, options] = await Promise.all([getSettings(), getFilterOptions()]);
+  const [settings, options, insights] = await Promise.all([getSettings(), getFilterOptions(), getInsights()]);
 
   return (
     <div className="max-w-2xl">
@@ -22,6 +22,7 @@ export default async function SettingsPage() {
       <SettingsForm
         initial={settings}
         options={options}
+        insights={insights}
         authEnabled={Boolean(process.env.APP_PASSWORD?.trim())}
       />
     </div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { execute, getFeedback, queryItems, type ItemRow } from "@/lib/db";
+import { execute, getFeedback, getSettings, queryItems, type ItemRow } from "@/lib/db";
 import { parseRelated } from "@/lib/related";
 import ItemCard from "../components/ItemCard";
 import MarkAllReadButton from "../components/MarkAllReadButton";
@@ -20,13 +20,14 @@ function likePattern(q: string) {
 export default async function Archive({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; issue?: string; sort?: string; nodown?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; issue?: string; sort?: string; nodown?: string; noblock?: string }>;
 }) {
-  const { page: pageParam, q: qParam, issue: issueParam, sort: sortParam, nodown: nodownParam } =
+  const { page: pageParam, q: qParam, issue: issueParam, sort: sortParam, nodown: nodownParam, noblock: noblockParam } =
     await searchParams;
   const q = (qParam ?? "").trim().slice(0, 80);
   const sort = sortParam === "relevance" ? "relevance" : "time";
   const hideDown = nodownParam === "1";
+  const hideBlock = noblockParam === "1";
   // 期号筛选：只接受 YYYY-MM-DD 形态，防手改 URL 塞进奇怪的东西
   const issueSel = /^\d{4}-\d{2}-\d{2}$/.test(issueParam ?? "") ? issueParam! : "";
   const page = Math.max(1, Number(pageParam) || 1);
@@ -47,6 +48,18 @@ export default async function Archive({
   }
   if (hideDown) {
     conditions.push("link NOT IN (SELECT link FROM feedback WHERE verdict = 'down')");
+  }
+  // 屏蔽词同步隐藏（可选）：历史页默认是完整合订本，这个开关让屏蔽词
+  // 在历史页同样生效——和首页同一口径（大小写不敏感，匹配标题）
+  if (hideBlock) {
+    const settings = await getSettings();
+    for (const k of settings.blockedKeywords) {
+      const p = likePattern(k.toLowerCase());
+      conditions.push(
+        "(LOWER(COALESCE(zh_title, '')) NOT LIKE ? ESCAPE '\\' AND LOWER(title) NOT LIKE ? ESCAPE '\\')",
+      );
+      args.push(p, p);
+    }
   }
   const where = conditions.join(" AND ");
 
@@ -99,6 +112,7 @@ export default async function Archive({
     if (sort === "relevance") params.set("sort", "relevance");
     if (issueSel) params.set("issue", issueSel);
     if (hideDown) params.set("nodown", "1");
+    if (hideBlock) params.set("noblock", "1");
     return `/archive?${params.toString()}`;
   };
   const withParams = (patch: Record<string, string | null>) => {
@@ -107,6 +121,7 @@ export default async function Archive({
     if (sort === "relevance") params.set("sort", "relevance");
     if (issueSel) params.set("issue", issueSel);
     if (hideDown) params.set("nodown", "1");
+    if (hideBlock) params.set("noblock", "1");
     for (const [k, v] of Object.entries(patch)) {
       if (v === null) params.delete(k);
       else params.set(k, v);
@@ -233,6 +248,17 @@ export default async function Archive({
                 title="隐藏点过「踩」的条目（数据仍保留，随时可关掉开关找回）"
               >
                 {hideDown ? "已隐藏点踩条目 ✓" : "隐藏点踩条目"}
+              </Link>
+              <Link
+                href={withParams({ noblock: hideBlock ? null : "1", page: null })}
+                className={`rounded-full border px-2.5 py-1 transition-colors ${
+                  hideBlock
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-line bg-white text-ink-soft hover:border-amber-300 hover:text-amber-800"
+                }`}
+                title="屏蔽词在历史页同样隐藏（默认历史页显示全部；需要先在设置里添加屏蔽词）"
+              >
+                {hideBlock ? "已隐藏屏蔽词条目 ✓" : "屏蔽词也隐藏"}
               </Link>
               <DeleteDownvotedButton count={downedTotal} />
               {issueSel ? (

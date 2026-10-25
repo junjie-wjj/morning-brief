@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { WATCH_TOPICS, type Settings } from "@/lib/db";
+import { WATCH_TOPICS, type Insights, type Settings } from "@/lib/db";
 
 const DEFAULTS: Settings = {
   minScore: 3,
@@ -68,10 +68,12 @@ function Chip({
 export default function SettingsForm({
   initial,
   options,
+  insights,
   authEnabled = false,
 }: {
   initial: Settings;
   options: { tags: string[]; sources: string[]; products: string[] };
+  insights?: Insights;
   authEnabled?: boolean;
 }) {
   const router = useRouter();
@@ -115,6 +117,81 @@ export default function SettingsForm({
 
   return (
     <div className="mt-6 space-y-4">
+      {insights ? (
+        <Section
+          title="系统眼中的你"
+          hint="根据你的 👍/👎 统计出的偏好画像与阅读概况；多点赞踩就会越准，删除条目不影响这里的记忆。"
+        >
+          <div className="space-y-3">
+            {insights.searchTerms.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-muted">每日主动搜索：</span>
+                {insights.searchTerms.map((t) => (
+                  <span
+                    key={t.kind + t.term}
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700"
+                    title={t.kind === "tag" ? `分类「${t.label}」净赞 ≥2 触发` : `产品「${t.label}」净赞 ≥2 触发`}
+                  >
+                    {t.term}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted">还没有触发偏好搜索（同一主题净赞 ≥2 才启用）。</p>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium text-ink-soft">分类偏好（👍/👎）</p>
+                <div className="mt-1.5 space-y-1">
+                  {insights.tags.slice(0, 6).map((t) => {
+                    const net = t.up - t.down;
+                    return (
+                      <div key={t.tag} className="flex items-center gap-2 text-xs">
+                        <span className="w-20 shrink-0 truncate text-ink-soft">{t.tag}</span>
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100">
+                          <div
+                            className={`h-full rounded-full ${net >= 0 ? "bg-emerald-400" : "bg-rose-300"}`}
+                            style={{ width: `${Math.min(100, Math.abs(net) * 8 + 8)}%` }}
+                          />
+                        </div>
+                        <span className={`w-8 shrink-0 text-right tabular-nums ${net >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                          {net >= 0 ? "+" : ""}{net}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-ink-soft">产品偏好（👍/👎）</p>
+                <div className="mt-1.5 space-y-1">
+                  {insights.products.slice(0, 6).map((p) => {
+                    const net = p.up - p.down;
+                    return (
+                      <div key={p.name} className="flex items-center gap-2 text-xs">
+                        <span className="w-20 shrink-0 truncate text-ink-soft">{p.name}</span>
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100">
+                          <div
+                            className={`h-full rounded-full ${net >= 0 ? "bg-emerald-400" : "bg-rose-300"}`}
+                            style={{ width: `${Math.min(100, Math.abs(net) * 8 + 8)}%` }}
+                          />
+                        </div>
+                        <span className={`w-8 shrink-0 text-right tabular-nums ${net >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                          {net >= 0 ? "+" : ""}{net}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <p className="border-t border-line pt-2 text-xs text-muted">
+              阅读概况：库存 {insights.reading.total} 条 · 已读 {insights.reading.read} · 稍后读 {insights.reading.later} · 未读 {insights.reading.unread}
+              ｜ 反馈 {insights.reading.ups} 赞 / {insights.reading.downs} 踩
+            </p>
+          </div>
+        </Section>
+      ) : null}
       <Section title="兴趣分下限" hint="低于这个分数的资讯会收进首页底部的折叠区；产品追踪不受影响。">
         <div className="flex flex-wrap gap-2">
           {[
