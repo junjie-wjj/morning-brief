@@ -3,7 +3,6 @@
 > **一份每天早上 7 点自动生成的个人 AI 资讯早餐** —— 从 6 类信息源抓取、LLM 加工成中文摘要并打分、按你的口味个性化排序，全链路零成本运行于免费额度之上。
 
 [![daily pipeline](https://github.com/junjie-wjj/morning-brief/actions/workflows/daily.yml/badge.svg)](https://github.com/junjie-wjj/morning-brief/actions/workflows/daily.yml)
-[![deploy](https://github.com/junjie-wjj/morning-brief/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/junjie-wjj/morning-brief/actions/workflows/deploy-web.yml)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 **在线演示**：https://morning-brief-junjie.netlify.app （示例站点，每日自动更新）
